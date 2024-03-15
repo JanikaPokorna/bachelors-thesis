@@ -39,8 +39,6 @@ function [x] = precond_conjugate_grad(A, b, C, x0, maxiter, tol)
         iteration = iteration + 1;
         i = i+1;
     end
-    R = R_;
-    P = P_;
     x = x_;
     if iteration < maxiter
         text = sprintf('Method converged in %d iterations.\n', iteration);

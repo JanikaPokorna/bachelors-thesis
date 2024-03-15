@@ -1,9 +1,9 @@
 %% CG
 
 %  Let us have a system of linear equations Ax = b for vector x, A is a
-%  positive-definite Hermitian n x n matrix.
+%  positive-definite sym. n x n matrix.
 
-function [x,X] = conjugate_grad(A, b, x0, maxiter, tol)
+function [x,X,i] = conjugate_grad(A, b, x0, maxiter, tol)
     arguments
         A
         b
@@ -14,7 +14,7 @@ function [x,X] = conjugate_grad(A, b, x0, maxiter, tol)
     n = size(A, 1); 
     R = zeros(n,maxiter+1);
     P = zeros(n, maxiter+1);
-    X = zeros(n, maxiter+2);
+    X = zeros(n, maxiter+1);
     R(:,1) = b - A * x0;
     P(:,1) = R(:,1);
     x = x0;
@@ -24,9 +24,9 @@ function [x,X] = conjugate_grad(A, b, x0, maxiter, tol)
         r_prod_old = R(:,i)' * R(:,i);
         p_prod =  A * P(:,i);
         gamma = r_prod_old/(P(:,i)' * p_prod);
-        R(:,i+1) = R(:,i) + gamma * P(:,i);
+        R(:,i+1) = R(:,i) - gamma * p_prod;
         X(:,i) = x;
-        x = x - gamma * p_prod;
+        x = x + gamma * P(:,i);
         r_prod_new = R(:,i+1)' * R(:,i+1);
         delta = r_prod_new / r_prod_old;
         P(:,i+1) = R(:,i+1) + delta * P(:,i);

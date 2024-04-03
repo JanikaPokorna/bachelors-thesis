@@ -3,18 +3,19 @@
 %  Let us have a system of linear equations Ax = b for vector x, A is a
 %  positive-definite sym. n x n matrix.
 
-function [x,X,i] = conjugate_grad(A, b, x0, maxiter, tol)
+function [x,X,i,P,R,Gamma] = conjugate_grad(A, b, x0, maxiter, tol)
     arguments
         A
         b
         x0 = zeros(size(A, 1),1)
-        maxiter = 1000
+        maxiter = 100;
         tol = 1e-7
     end
     n = size(A, 1); 
     R = zeros(n,maxiter+1);
     P = zeros(n, maxiter+1);
     X = zeros(n, maxiter+1);
+    Gamma = zeros(1,maxiter+1);
     R(:,1) = b - A * x0;
     P(:,1) = R(:,1);
     x = x0;
@@ -23,10 +24,10 @@ function [x,X,i] = conjugate_grad(A, b, x0, maxiter, tol)
     while (sqrt(r_prod_old) > tol && i < maxiter)
         r_prod_old = R(:,i)' * R(:,i);
         p_prod =  A * P(:,i);
-        gamma = r_prod_old/(P(:,i)' * p_prod);
-        R(:,i+1) = R(:,i) - gamma * p_prod;
+        Gamma(1,i) = r_prod_old/(P(:,i)' * p_prod);
+        R(:,i+1) = R(:,i) - Gamma(1,i) * p_prod;
         X(:,i) = x;
-        x = x + gamma * P(:,i);
+        x = x + Gamma(1,i) * P(:,i);
         r_prod_new = R(:,i+1)' * R(:,i+1);
         delta = r_prod_new / r_prod_old;
         P(:,i+1) = R(:,i+1) + delta * P(:,i);

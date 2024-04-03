@@ -1,4 +1,4 @@
-function [A] = strakos(n,a,b,rho)
+function [A,D] = strakos(n,a,b,rho)
 
 %    
     lambda      = zeros(n,1);
@@ -10,4 +10,7 @@ function [A] = strakos(n,a,b,rho)
         lambda(i)=a+((i-1)/(n-1))*(b-a)*rho^(n-i);
     end
 %    
-    A = diag(lambda);
+    D = diag(lambda);
+    R = rand(n);
+    [Q,~] = qr(R);
+    A = Q'*D*Q;

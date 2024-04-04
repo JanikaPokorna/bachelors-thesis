@@ -2,6 +2,7 @@
 
 n = 500;
 ker_dim = 1;
+x0 = zeros(n,1);
 rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
@@ -20,7 +21,6 @@ b = make_vector_b(spanA,kerA,delta);
 % ylabel('Diagonal Value');
 % grid on;
 
-S = S'*S;
 eigen_values = eig(S);
 
 % Plot the eigen values of symmetric PD strakos matrix 
@@ -33,7 +33,6 @@ grid on;
 
 %check dimensions
 size(b)
-size(Gamma)
 
 [x,X,len,P,R,Gamma] = conjugate_grad(S,b);
 

@@ -15,5 +15,5 @@ function [A,D,spanA, kerA] = singular_strakos(n, kernel_dim, a, b, rho)
     [Q,~] = qr(R);
     spanA = Q(1:end-kernel_dim, :);
     kerA = Q(end-kernel_dim+1:end, :);
-    A = Q'*D*Q;
+    A = Q'*D*Q; %uz je sym
 end

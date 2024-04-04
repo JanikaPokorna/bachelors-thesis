@@ -2,10 +2,11 @@
 
 n = 500;
 ker_dim = 1;
+x0 = zeros(n,1);
 rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
-deltas = [0,0.5,0.1,0.05];
+deltas = [0,1e-2,1e-4,1e-6];
 [S,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
 diagonal_values = diag(D);
 
@@ -15,7 +16,6 @@ for i = 1:size(deltas,2)
     b(:,i) = make_vector_b(spanA,kerA,deltas(i));
 end
 
-S = S'*S;
 eigen_values = eig(S);
 
 % Plot the eigen values of symmetric PD strakos matrix 

@@ -2,25 +2,23 @@
 
 n = 500;
 ker_dim = 1;
+maxiter = 500;
+tol = 1e-15;
 x0 = zeros(n,1);
 rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
-deltas = [0,1e-2,1e-4,1e-6];
+deltas = [0,1e-2,1e-4,1e-9];
 [S,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
 diagonal_values = diag(D);
 
 % create right-hand side vector b
-b = zeros(n,size(deltas,2));
-for i = 1:size(deltas,2)
-    b(:,i) = make_vector_b(spanA,kerA,deltas(i));
-end
+b = make_multi_vector_b(spanA,kerA,deltas);
 
-eigen_values = eig(S);
 
 % Plot the eigen values of symmetric PD strakos matrix 
 figure(2);
-semilogy(eigen_values, 'or');
+semilogy(diag(D), 'or');
 title('Diagonal values of the matrix');
 xlabel('Index');
 ylabel('Diagonal Value');
@@ -31,7 +29,7 @@ grid on;
 X_matrices = cell(size(b,2), 1);
 Gamma_matrices = cell(size(b,2), 1);
 for i = 1:size(b,2)
-    [x, X_i,l,~,Gamma_i] = conjugate_grad(S, b(:,i));
+    [x, X_i,l,~,Gamma_i] = conjugate_grad(S, b(:,i),x0,maxiter,tol);
     if i == 1
         converged_x = x;
         len = l;
@@ -43,24 +41,32 @@ end
 % Make error matrices
 Error_matrices = cell(size(b,2), 1);
 for k = 1:size(b,2)
-    error_matrix = zeros(1,len);
+    error_matrix = zeros(1,maxiter);
     X = X_matrices{k};
-    for i = 1:len
+    for i = 1:maxiter
         A_norm_xi = sqrt((converged_x - X(:,i))'*S*(converged_x - X(:,i)));
         error_matrix(1,i) = A_norm_xi/(sqrt((converged_x - x0)'*S*(converged_x - x0)));
+        if (i > 5 && error_matrix(1,i)==1)
+            error_matrix(1,i:end) =0;
+            break
+        end
     end
     Error_matrices{k} = error_matrix;
 end
 
 colors = {'r', 'g', 'b', 'm', 'c'};
 
+%check dimensions
+size(Error_matrices{1}(1:maxiter))
+size(1:maxiter)
+
 figure(3)
 hold on;
 for i = 1:size(b,2)
-    semilogy(1:len, Error_matrices{i}(1:len),['o-', colors{i}]);
+    semilogy(1:maxiter, Error_matrices{i}(1:maxiter),['o-', colors{i}]);
     hold on;
 end
-title('Relatove error for different delta values');
+title('Relative error for different delta values');
 xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 ylim([0, 5]);

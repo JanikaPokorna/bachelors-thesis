@@ -2,13 +2,13 @@
 
 n = 500;
 ker_dim = 1;
-maxiter = 500;
+maxiter = 550;
 tol = 1e-15;
 x0 = zeros(n,1);
 rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
-deltas = [0,1e-2,1e-4,1e-9];
+deltas = [0];
 [S,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
 diagonal_values = diag(D);
 
@@ -29,13 +29,13 @@ grid on;
 X_matrices = cell(size(b,2), 1);
 Gamma_matrices = cell(size(b,2), 1);
 for i = 1:size(b,2)
-    [x, X_i,l,~,Gamma_i] = conjugate_grad(S, b(:,i),x0,maxiter,tol);
+    [x, X_i,l,~,~,Gamma_i] = conjugate_grad(S, b(:,i),x0,maxiter,tol);
     if i == 1
         converged_x = x;
         len = l;
     end
     X_matrices{i} = X_i;
-    Gamma_matrices{i} = Gamma_i;
+    Gamma_matrices{i,1} = Gamma_i;
 end
 
 % Make error matrices
@@ -69,8 +69,10 @@ end
 title('Relative error for different delta values');
 xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
-ylim([0, 5]);
-xlim([0,50])
+ylim([0, 8]);
+xlim([0,len])
+legend('\delta = 0', '\delta = 1e-2', '\delta = 1e-4','\delta = 1e-6', 'Location', 'best');
+set(gca, 'YScale', 'log');
 hold off;
 
 figure(4)
@@ -82,4 +84,5 @@ end
 xlabel('Step k')
 ylabel('Gamma values for different delta values')
 title('Values of Gamma')
+legend('\delta = 0', '\delta = 1e-2', '\delta = 1e-4','\delta = 1e-6', 'Location', 'best');
 hold off;

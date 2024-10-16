@@ -1,0 +1,67 @@
+\chapter{Conjugate Gradient Method for Regular Systems}
+
+\section{Motivation}
+
+There are numerous ways of approaching the derivation of the Conjugate Gradient method, such as using the Lanczos method (see \cite{vanderVorst03}) or minimizing the quadratic functional \(\mathcal{F}(x)=\frac{1}{2}x^{T}\mathbb{A}x - x^{T}b\). We will be following the second approach, as it offers a basic geometric understanding when derived for \(\mathbb{A}\in{\mathbb{R}^{nxn}}\) and \(b\in\mathbb{R}^n\), \(n\in{N}\). 
+
+\indent To minimize a functional we wish to find its gradient and compare it to zero. Using the definition of gradient, let us compute 
+
+\[\nabla{\mathbb{F}(x)} = \nabla{(\frac{1}{2}x^{T}\mathbb{A}x - x^{T}b)}\]
+
+Linearity of the gradient and a look at the i-th component of the expression gives us the following analysis
+
+\[\nabla{(\frac{1}{2}x^{T}\mathbb{A}x - x^{T}b)}=\frac{1}{2}[\nabla{(x^T\mathbb{A}x)}]_{i} - [\nabla{(x^Tb)}]_i = \frac{1}{2}(\partial_i(x_k\mathbb{A}_{kj}x_j)) - \partial_i(x_kb_k) =\]
+
+\[= \frac{1}{2}(\delta_{ik}\mathbb{A}_{kj}x_j + \delta_{ij}x_k\mathbb{A}_{kj}) -\delta_{ik}x_k = \frac{1}{2}(\mathbb{A}_{ij}x_j + x_k\mathbb{A}_{ki}) - b_i \]
+
+
+Which gives us 
+\begin{equation}\label{1.1}
+    \nabla\mathbb{F}(x)=2\frac{1}{2}\mathbb{A}x - b = \mathbb{A}x - b = 0.
+\end{equation}
+
+Minimizing the functional \(\mathbb{F}(x)\) thus gives us the solution to the system of equations \(\mathbb{A}x = b\). If we then assume \(\mathbb{A}\) positive definite, such a solution \(x_*\) must be unique.
+
+
+\section{Derivation of the Conjugate Gradient Method for Regular Systems}
+
+
+Let us have a sparse positive-definite symmetric matrix \(\mathbb{A}\in\mathbb{R}^{nxn} \) and a right-hand side vector \(b\in\mathbb{R}^n, n\in\mathbb{N} \) large. For the purpose of having a better convergence rate than steepest descent, we shall be minimizing our functional using the \(\bold{"Energy\,Norm"}\), also called A-norm, which we define as 
+
+\[\|x\|_A = \sqrt{(x,x)_A}\] for \(\forall{x}\in\mathbb{R}^n \), where we define the scalar product \[(x,y)_A = x^T\mathbb{A}y \] for \(x,y\in\mathbb{R}^n  \).
+
+This is indeed a norm if \(\mathbb{A} \) is positive definite. Then it satisfies the three necessary conditions:
+\begin{itemize}
+    \item linearity
+    \[\|\alpha x\|_A = \sqrt{\alpha x^T\mathbb{A}\alpha x } = \sqrt{\alpha^2}\sqrt{x^T\mathbb{A} x} = \alpha\|x\|_A, \]
+    \item triangle inequality
+    \[ (\|x\|_A+\|y\|_A)^2 = {\|x\|_A}^2 + 2\|x\|_A\|y\|_A +  {\|y\|_A}^2\geq {\|x\|_A}^2 + 2x^T\mathbb{A}y +  {\|y\|_A}^2 \]
+    \[ = x^T\mathbb{A}x + 2x^T\mathbb{A}y + y^T\mathbb{A}y = (x+y)^T\mathbb{A}(x+y) = {\|x+y\|_A}^2 \forall x,y \in\mathbb{R}^n\]
+    using the Cauchy-Schwartz inequality, giving us \(\|x\|_A+\|y\|_A \geq \|x+y\|_A\),
+    \item positive-definiteness - stems trivially from positive-definiteness of matrix \(\mathbb{A}\).
+\end{itemize}
+
+Let us assume we have an approximation \(x_k\) of the solution \(x_*\), and substitute it into the functional \(\mathbb{F}(x)\):
+\begin{equation}
+\begin{split}
+\mathbb{F}(x_k) = \frac{1}{2}{x_k}^{T}\mathbb{A}x_k - {x_k}^{T}b = \frac{1}{2}{x_k}^{T}\mathbb{A}x_k - {x_k}^{T}\mathbb{A}x_* (\pm\frac{1}{2}{x_*}^{T}\mathbb{A}x_*) \\ = \frac{1}{2}{(x_*-x_k)}^{T}\mathbb{A}(x_*-x_k) - \frac{1}{2}{x_*}^{T}\mathbb{A}x_* = \frac{1}{2}\|x_* - x_k\|_A-\frac{1}{2}\|x_*\|_A
+\end{split}
+\end{equation}
+Since \(x_*\) is a constant value, to minimize the expression on the right we must find \(x_k\) such that \(\|x_* - x_k\|_A\) is minimal. Thus the minimization of the functional \(\mathbb{F}(x_k)\) is equivalent to minimizing the A-norm of \(x_* - x_k \).
+
+Our goal of having a method with quick convergence leads us in the direction of numerical methods on Krylov subspaces (see \cite{LiesenStrakos12}). We would like to find each \(x_k\) from the k-th Krylov subspace \(\mathbb{K}_k(\mathbb{A},r_0), \)
+\begin{equation}
+r_0 =\mathbb{A}x_0 - b
+\end{equation}
+
+If we managed such an iterative method, we would know that the best approximation was found in less that or exactly n steps.
+
+Thus, our method would be an analogy of finding the least squares solution  
+\begin{equation}
+    \operatorname{arg\,min}_{x_k \in x_0 + \mathbb{K}_k(A,r_0)} \|x_* - x_k\|_A,
+\end{equation}
+ for k = 1,2,...
+
+
+- eigenvalues, spectral decomposition and ties to eigenvalues
+- notation of solution, estimate, etc

@@ -1,0 +1,7 @@
+\chapter*{Introduction}
+Finding a solution to a system of linear equations \(\bold{{\mathbb{A}x}=b}\) where the data matrix \(\bold{\mathbb{A}}\) is sparse and has large dimension is a ubiquitous problem in applied mathematics. Many numerical methods have been developed for this purpose, such as \(\bold{LU\,Factorization}\) (which sometimes necessitates pivoting and other algebraic modifications needed to minimize nonzero elements, also called fill-ins) [?], or dimension-reducing methods, such as doplnit. In this thesis we shall focus on the \(\bold{Conjugate\,Gradient\,(CG)}\) method which utilises Krylov subspaces to assure quick convergence and is memory-friendly if applied on systems with certain qualities.
+
+
+The CG method was formulated in the middle of the 20th century by M. Hestenes and E. Stiefel [\cite{HestenesStiefel52}] as a method for solving regular systems of n linear equations with a sparse symmetrical (or Hermitian, if considering \(A\in{\mathbb{C}^{nxn}}\)) data matrix. Contrary to the often presented popular belief that the CG method is a finite method, this method has been understood (as early as Hestenes and Stiefel) to be iterative, approximating the true result while displaying rounding errors due to the finite precision of computer arithmetic. 
+\addcontentsline{toc}{chapter}{Introduction}
+

@@ -13,5 +13,5 @@ function [b] = make_multi_vector_b(spanA,kerA,deltas)
     randomvectorspan = rand(dim_spanA,1);
     for i = 1: size(deltas,2)
         b(:,i) = spanA * randomvectorspan + deltas(i) * kerA * randomvectorker/norm(kerA * randomvectorker);
+        %b(:, i) = cos(deltas(i)) * spanA * randomvectorspan/norm(spanA * randomvectorspan) + sin(deltas(i)) * kerA * randomvectorker/norm(kerA * randomvectorker);
     end
-% mozna pak normovat cast ve span A

@@ -1,8 +1,8 @@
 %% test file matrix market - bcsstk04
 
-betas = [0, 1e-6, 1e-4, 20];
+betas = [0,1e-20,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
 tol = 1e-15;
-maxiter = 3000;
+maxiter = 4000;
 
 
 %% load matrix
@@ -11,10 +11,11 @@ maxiter = 3000;
 % new_matrix = new_data.A;
 % n = size(new_matrix,1);
 
-new_matrix = mmread('matrices/matrix_market/positive-definite/bcsstm26.mtx');
-% new_matrix = mmread('matrices/matrix_market/positive-definite/1138_bus.mtx');
+% new_matrix = mmread('matrices/matrix_market/positive-definite/bcsstm26.mtx');
+new_matrix = mmread('matrices/matrix_market/positive-definite/1138_bus.mtx');
 % new_matrix = mmread('matrices/matrix_market/positive-definite/nos7.mtx');
 % new_matrix = mmread('matrices/matrix_market/positive-definite/s2rmt3m1.mtx');
+
 
 n = size(new_matrix,1);
 x0 = zeros(n,1);
@@ -48,15 +49,16 @@ grid on;
 %% CG
 X_matrices = cell(size(b,2), 1);
 Gamma_matrices = cell(size(b,2), 1);
+Delta_matrices = cell(size(b,2), 1);
 P_matrices = cell(size(b,2), 1);
 P_projected_ker = cell(size(b,2), 1);
 X_projected_ker = cell(size(b,2), 1);
 R_matrices = cell(size(b,2), 1);
 R_projected_span = cell(size(b,2), 1);
-
+X_projected_span = cell(size(b,2), 1);
 
 for i = 1:size(b,2)
-    [x, X_i,l,P_i,R_i,Gamma_i] = conjugate_grad(M, b(:,i),x0,maxiter,tol);
+    [x, X_i,l,P_i,R_i,Gamma_i,Delta_i] = conjugate_grad(M, b(:,i),x0,maxiter,tol);
     if i == 1
         converged_x = x;
         len = l;
@@ -72,10 +74,10 @@ for i = 1:size(b,2)
         %kontrola dimenzí
         size(ker_M')
         size(X_matrices{i}) 
-        X_projected_ker{i} = (ker_M*ker_M')* X_matrices{i};
-        P_projected_ker{i} = (ker_M*ker_M')*P_matrices{i};
-        R_projected_span{i} = (span_M*span_M')*R_matrices{i};
     end
+    X_projected_ker{i} = (ker_M*ker_M')*X_matrices{i};
+    P_projected_ker{i} = (ker_M*ker_M')*P_matrices{i};
+    R_projected_span{i} = (span_M*span_M')*R_matrices{i};
 end
 
 %% error matrices
@@ -95,16 +97,30 @@ for k = 1:size(b,2)
     Error_matrices{k} = error_matrix;
 end
 
+%% Vykreslení detailu divergence
+Convergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
+for k=1:size(b,2)
+    error_detail_matrix = zeros(1,maxiter);
+    error_matrix_unperturbed = Error_matrices{1};
+    error_matrix_perturbed = Error_matrices{k};
+    for i= 1:maxiter
+        error_detail_matrix(1,i) = (error_matrix_perturbed(1,i)-error_matrix_unperturbed(1,i))/error_matrix_unperturbed(1,i);
+    end
+    Convergence_detail_matrices{k} = error_detail_matrix;
+end
+
 %Error matrices for kernel component of x_k
+% nedava smysl vykreslovat relativne, protoze delime skoro nulou
 Error_matrices_kernel = cell(size(b,2), 1);
 for k = 1:size(b,2)
     error_matrix_ker = zeros(1,maxiter);
     X = X_projected_ker{k};
     first_vector_x1 = norm(X(:,2),2);
-    for i = 1:maxiter
+    for i = 2:maxiter
         Norm_xi = norm(X(:,i),2);
-        error_matrix_ker(1,i) = Norm_xi/norm(first_vector_x1,2);
-        if (i > 5 && error_matrix_ker(1,i)==1)
+        error_matrix_ker(1,i-1) = Norm_xi;
+        % error_matrix_ker(1,i-1) = Norm_xi/first_vector_x1;
+        if (i > 5 && error_matrix_ker(1,i-1)==1)
             error_matrix_ker(1,i:end) = 0;
             break
         end
@@ -128,22 +144,70 @@ end
 %comparing Gamma components
 Span_components = cell(size(b,2), 1);
 Ker_components = cell(size(b,2), 1);
+Combined_components = cell(size(b,2), 1);
+Denominator_values = cell(size(b,2), 1);
+Ratio_values = cell(size(b,2), 1);
+
 for k = 1: size(b,2)
     span_component_matrix = zeros(1,maxiter);
     ker_component_matrix = zeros(1,maxiter);
+    combined_component_matrix = zeros(1,maxiter);
+    denominator_matrix = zeros(1,maxiter);
+    ratio_matrix = zeros(1,maxiter);
     R = R_matrices{k};
     P = P_matrices{k};
-    b_kernel = b_ker(k);
+    b_kernel = b_ker(:,k);
     for i=1:maxiter
         denominator = P(:,i)'*M*P(:,i);
         span_component_matrix(1,i) = (R(:,i)'*R(:,i))/denominator;
-        ker_component_matrix(1,i) = (b_kernel*b_kernel')/denominator;
+        ker_component_matrix(1,i) = (b_kernel'*b_kernel)/denominator;
+        combined_component_matrix(1,:) = span_component_matrix+ker_component_matrix;
+        ratio_matrix(1,i) = combined_component_matrix(1,i)/span_component_matrix(1,i);
     end
     Span_components{k} = span_component_matrix;
     Ker_components{k} = ker_component_matrix;
+    Combined_components{k} = combined_component_matrix;
+    Denominator_values{k} = denominator_matrix;
+    Ratio_values{k} = ratio_matrix;
 end
 
-colors = {'r', 'g', 'b', 'm', 'c'};
+%%
+divergence_points_approximate = zeros(1, size(b,2));
+for k = 1:size(b,2)
+    difference = 0;
+    error_matrix = Error_matrices{k};
+    error_matrix_unperturbed = Error_matrices{1};
+    for i=1:maxiter
+        if (i>5 && error_matrix(1,i) > 1.59*error_matrix_unperturbed(1,i))
+            divergence_points_approximate(1,k) = i;
+            break
+        end
+    end
+end
+
+%Searching for max value of gamma/gamma_hat ratio before divergence
+max_ratio_values = zeros(1, size(b,2));
+ for k = 1:size(b,2)
+    divergence_point = divergence_points_approximate(1,k);
+    lower_bound = max(1, divergence_point - 500);
+    upper_bound = min(divergence_point+500,maxiter); 
+    max_ratio_values(1,k) = max(Ratio_values{k}(lower_bound:upper_bound));
+end
+
+% checking when gamma_i/2 > gammahat
+gamma_matrix_unperturbed = Gamma_matrices{1};
+divergence_points = zeros(size(b,2),1);
+for k = 2: size(b,2)
+    gamma_matrix_perturbed = Gamma_matrices{k};
+    for i = 1:maxiter
+        if gamma_matrix_perturbed(1,i) > 2* gamma_matrix_unperturbed(1,i)
+            divergence_points(k) = i;
+            break
+        end
+    end
+end
+
+colors = {'r', 'g', 'b', 'm', 'c', 'y', 'k', 'g', 'b'};
 
 %check dimensions
 size(Error_matrices{1}(1:maxiter));
@@ -151,63 +215,88 @@ size(1:maxiter);
 
 %% plotting 
 
-figure(2)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    semilogy(1:maxiter, Error_matrices{i}(1:maxiter),['o-', colors{i}]);
+    h(i) = semilogy(1:maxiter, Error_matrices{i}(1:maxiter),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('Relative error for different beta values');
 xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 ylim([0, inf]);
 xlim([0,len]);
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
-
-figure(3)
+%%
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    plot(1:len+1, Gamma_matrices{i}(1:len+1),['o-', colors{i}]);
+    h(i) =semilogy(1:len+1, Gamma_matrices{i}(1:len+1),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 xlabel('Step k')
 ylabel('Gamma values')
 title('Values of Gamma')
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 hold off;
 
-figure(4)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    semilogy(1:maxiter, Error_matrices_kernel{i}(1:maxiter),['o-', colors{i}]);
+    h(i)= semilogy(1:maxiter, Error_matrices_kernel{i}(1:maxiter),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('Relative error - kernel components of x_i');
 xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 ylim([0, inf]);
 xlim([0,len+30])
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 
 for i = 1:size(b,2)
-    figure(6+i);
+    figure;
     hold on;
-    h_kernel = semilogy(1:maxiter, Ker_components{i}(1:maxiter),'.-r');
+    h_combined = semilogy(1:maxiter, Combined_components{i}(1:maxiter),'.-r');
     h_span = semilogy(1:maxiter, Span_components{i}(1:maxiter),'.-b');
     title('Comparison of \gamma components');
     xlabel('Step k', 'FontName', 'AvantGarde');
     ylabel('Value', 'FontName', 'AvantGarde');
-    ylim([0, inf]);  
-    xlim([0, len]);
     set(gca, 'YScale', 'log');
-    % set([ h_kernel h_span], 'LineWidth', 1.5, 'MarkerSize', 6);
-    set(h_kernel, 'LineWidth', 1.5, 'MarkerSize', 6);
-    set( h_kernel,'MarkerFaceColor',[.0 0 .8],'MarkerEdgeColor','r');
-    % set( h_span, 'MarkerFaceColor',[.0 0 .8],'MarkerEdgeColor','b');
-    legend('Kernel Component', 'Span Component', 'Location', 'best');
+    set([ h_combined h_span], 'LineWidth', 1.5, 'MarkerSize', 6);
+    set( h_combined,'MarkerFaceColor',[.8 0 0],'MarkerEdgeColor','r');
+    set( h_span, 'MarkerFaceColor',[.0 0 .8],'MarkerEdgeColor','b');
+    xlim([divergence_points_approximate(1,i)-100,divergence_points_approximate(1,i)]);
+    legend('Combined Components', 'Span Component', 'Location', 'best');
+    hold off;
+end
+
+for i = 1:size(b,2)
+    figure
+    hold on;
+    h_relative = plot(1:maxiter,Ratio_values{i}(1:maxiter),'.-b');
+    plot(1:maxiter,2,'.-r');
+    legend('Ratio of gamma and gamma_hat', 'Location', 'best');
+    xlim([0,len]);
+    ylim([0,3]);
+    hold off;
+end
+
+figure %convergence ratio
+for i = 1:size(b,2)
+    hold on;
+    h_ratio = plot(1:maxiter,Convergence_detail_matrices{i}(1:maxiter),'.-b');
+    legend('Ratio of a-norm of x in perturbed vs. unperturbed ', 'Location', 'best');
+    xlim([0,len]);
+    ylim([0,1.5]);
     hold off;
 end

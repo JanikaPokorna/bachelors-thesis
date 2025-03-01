@@ -8,7 +8,7 @@ x0 = zeros(n,1);
 rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
-betas = [0, 1e-6, 1e-4, 1e-2];
+betas = [0,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
 [S,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
 diagonal_values = diag(D);
 
@@ -19,7 +19,7 @@ b_ker = kerA'*kerA * b;
 % b_kernel'*b_kernel;
 
 %% Plot the eigenvalues of symmetric PD strakos matrix 
-figure(2);
+figure;
 semilogy(diag(D), 'or');
 title('Diagonal values of the matrix');
 xlabel('Index');
@@ -72,11 +72,12 @@ end
 %% Chybové matice
 Error_matrices = cell(size(b,2), 1);
 for k = 1:size(b,2)
+    error_detail_matrix = zeros(1,maxiter);
     error_matrix = zeros(1,maxiter);
     X = X_matrices{k};
     for i = 1:maxiter
         A_norm_xi = sqrt((converged_x - X(:,i))'*S*(converged_x - X(:,i)));
-        error_matrix(1,i) = A_norm_xi/(sqrt((converged_x - x0)'*S*(converged_x - x0)));
+        error_matrix(1,i) = A_norm_xi/(sqrt((converged_x - x0)'*S*(converged_x - x0))); 
         if (i > 5 && error_matrix(1,i)==1)
             error_matrix(1,i:end) =0;
             break
@@ -85,16 +86,29 @@ for k = 1:size(b,2)
     Error_matrices{k} = error_matrix;
 end
 
+%% Vykreslení detailu divergence
+Convergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
+for k=1:size(b,2)
+    error_detail_matrix = zeros(1,maxiter);
+    error_matrix_unperturbed = Error_matrices{1};
+    error_matrix_perturbed = Error_matrices{k};
+    for i= 1:maxiter
+        error_detail_matrix(1,i) = (error_matrix_perturbed(1,i)-error_matrix_unperturbed(1,i))/error_matrix_unperturbed(1,i);
+    end
+    Convergence_detail_matrices{k} = error_detail_matrix;
+end
+
+%%
 %Error matrices for kernel component of x_k
 Error_matrices_kernel = cell(size(b,2), 1);
 for k = 1:size(b,2)
     error_matrix_ker = zeros(1,maxiter);
     X = X_projected_ker{k};
     first_vector_x1 = norm(X(:,2),2);
-    for i = 3:maxiter
+    for i = 2:maxiter
         Norm_xi = norm(X(:,i),2);
-        error_matrix_ker(1,i-2) = Norm_xi/norm(first_vector_x1,2);
-        if (i > 5 && error_matrix_ker(1,i-2)==1)
+        error_matrix_ker(1,i-1) = Norm_xi/first_vector_x1;
+        if (i > 5 && error_matrix_ker(1,i-1)==1)
             error_matrix_ker(1,i:end) =0; %pripsala jsem _ker
             break
         end
@@ -137,26 +151,34 @@ Span_components = cell(size(b,2), 1);
 Ker_components = cell(size(b,2), 1);
 Combined_components = cell(size(b,2), 1);
 Denominator_values = cell(size(b,2), 1);
+Ratio_values = cell(size(b,2), 1);
 
 for k = 1: size(b,2)
     span_component_matrix = zeros(1,maxiter);
     ker_component_matrix = zeros(1,maxiter);
     combined_component_matrix = zeros(1,maxiter);
     denominator_matrix = zeros(1,maxiter);
+    gamma_hat_matrix = zeros(1,maxiter);
+    ratio_matrix = zeros(1,maxiter);
     R = R_projected_span{k};
     P = P_matrices{k};
+    X = X_matrices{k};
     b_kernel = b_ker(:,k);   
     for i=1:maxiter
         denominator = P(:,i)'*S*P(:,i);
         denominator_matrix(1,i) = denominator;
         span_component_matrix(1,i) = (R(:,i)'*R(:,i))/denominator;
         ker_component_matrix(1,i) = (b_kernel'*b_kernel)/denominator;
+        gamma_hat_matrix(1,i) = P(:,i)'*S*(converged_x-X(:,i))/denominator;
         combined_component_matrix(1,:) = span_component_matrix+ker_component_matrix;
+        ratio_matrix(1,i) = combined_component_matrix(1,:)/gamma_hat_matrix(1,:);
+        %ratio_matrix(1,i) = combined_component_matrix(1,:)/span_component_matrix(1,i);
     end
     Span_components{k} = span_component_matrix;
     Ker_components{k} = ker_component_matrix;
     Combined_components{k} = combined_component_matrix;
     Denominator_values{k} = denominator_matrix;
+    Ratio_values{k} = ratio_matrix;
 end
 
 % checking when gamma_i/2 > gammahat
@@ -175,6 +197,18 @@ for k = 2: size(b,2)
             end
         end
     end
+end
+
+% looking at ratio between gamma and gamma_hat (from unperturbed case)
+Ratio_unperturbed_values = cell(size(b,2), 1);
+gamma_hat = Gamma_matrices{1};
+for k = 2:size(b,2)
+    gamma_per = Gamma_matrices{k};
+    ratio_unperturbed_matrix = zeros(size(b,2),1);
+    for i=1:maxiter
+        ratio_unperturbed_matrix(1,i) = gamma_per(1,i)/gamma_hat(1,i);
+    end
+    Ratio_unperturbed_values{k} = ratio_unperturbed_matrix;
 end
 
 
@@ -209,92 +243,98 @@ for k = 1:size(b,2)
     delta_deviation = Delta_matrices{k};
     p_deviation_matrices{k}(:,1) = P(:,1);
     for i = 2:maxiter
-        p_deviation = R(:,i) + delta_deviation(i)*P(:,i);
+        p_deviation = R(:,i) + delta_deviation(1,i-1)*P(:,i-1);
         p_deviation_matrices{k}(:,i) = p_deviation; 
-        % p_a_orthogonality_deviation_matrix(1,i-1) = abs((p_deviation')*S*P(:,i-1));
-        p_a_orthogonality_deviation_matrix(1,i-1) = abs((p_deviation')*S*p_deviation_matrices{k}(:,i-1));
+        p_a_orthogonality_deviation_matrix(1,i-1) = abs((p_deviation')*S*P(:,i-1));
+        % p_a_orthogonality_deviation_matrix(1,i-1) = abs((p_deviation')*S*p_deviation_matrices{k}(:,i-1));
     end
     A_orthogonality_deviation_matrices{k} = p_a_orthogonality_deviation_matrix;
 end
-
-
-colors = {'r', 'g', 'b', 'm', 'c'};
-
-%check dimensions
+%%
+colors = {'r', 'g', 'b', 'm', 'c', 'y', 'k', 'b'};
 size(Error_matrices{1}(1:maxiter));
 size(1:maxiter);
 
 %% plotting
 
-figure(3)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    semilogy(1:maxiter, Error_matrices{i}(1:maxiter),['o-', colors{i}]);
+    h(i) = semilogy(1:maxiter, Error_matrices{i}(1:maxiter),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('Relative error for different delta values');
 xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
-% ylim([0, inf]);
+legend(h, legend_entries, 'Location', 'best');
 xlim([0,len]);
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 
-figure(4)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    plot(1:len+1, Gamma_matrices{i}(1:len+1),['o-', colors{i}]);
+    h(i) = plot(1:len+1, Gamma_matrices{i}(1:len+1),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 xlabel('Step k')
 ylabel('Gamma values')
 title('Values of Gamma')
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 hold off;
 
-figure(5)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    semilogy(1:maxiter, Error_matrices_kernel{i}(1:maxiter),['o-', colors{i}]);
+    h(i) = semilogy(1:maxiter, Error_matrices_kernel{i}(1:maxiter),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('Relative error - kernel components of x_i');
 xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 % ylim([0, inf]);
 xlim([0,len+30])
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 
-figure(11)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    semilogy(1:maxiter, Error_matrices_range{i}(1:maxiter),['o-', colors{i}]);
+    h(i) = semilogy(1:maxiter, Error_matrices_range{i}(1:maxiter),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('Relative error - range components of x_i');
 xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 % ylim([-inf, inf]);
 xlim([0,len+30])
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 
-figure(6)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
-    semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter), ['o-', colors{i}]);
+    h(i) = semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter), ['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('A orthogonality of vector p_k against previous vector p_{k-1}');
 xlabel('Step k');
 ylabel('A');
 % ylim([0, inf]);  
 xlim([0, len+30]);
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 yticks([-1e-13, 0, 1e-13]);
 hold off;
@@ -320,7 +360,8 @@ hold off;
 
 
 for i = 1:size(b,2)
-    figure(6+i);
+    figure
+    legend_entries = cell(1, size(b,2));
     hold on;
     h_combined = semilogy(1:maxiter, Combined_components{i}(1:maxiter),'.-r');
     h_span = semilogy(1:maxiter, Span_components{i}(1:maxiter),'.-b');
@@ -336,33 +377,57 @@ for i = 1:size(b,2)
     hold off;
 end
 
+for i = 1:size(b,2)
+    figure
+    hold on;
+    h_relative = plot(1:maxiter,Ratio_values{i}(1:maxiter),'.-b');
+    plot(1:maxiter,2,'.-r');
+    legend('Ratio of gamma and gamma_hat', 'Location', 'best');
+    xlim([0,len]);
+    ylim([0,3]);
+    hold off;
+end
 
-figure(12)
+figure
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2)
     semilogy(1:maxiter, Error_matrices_linesearch{i}(1:maxiter),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('Linesearch deviation in each step compared to unperturbed case.');
 xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 % ylim([0, inf]);
 xlim([0,len]);
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 
-figure(13)
+figure;
 hold on;
+legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2) 
     semilogy(1:maxiter, A_orthogonality_deviation_matrices{i}(1:maxiter),['o-', colors{i}]);
     hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
 title('Deviation in A-orthogonality in computation of \delta.');
 xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 % ylim([0, inf]);
 xlim([0,len]);
-legend('\beta = 0', '\beta = 1e-6', '\beta = 1e-4','\beta = 1e-2', 'Location', 'best');
+legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
+%%
+figure %convergence ratio
+for i = 1:size(b,2)
+    hold on;
+    h_ratio = plot(1:maxiter,Convergence_detail_matrices{i}(1:maxiter),['o-', colors{i}]);
+    legend('Ratio of a-norm of x in perturbed vs. unperturbed ', 'Location', 'best');
+    xlim([0,len]);
+    ylim([0,1.5]);
+    hold off;
+end

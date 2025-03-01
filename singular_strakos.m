@@ -14,6 +14,6 @@ function [A,D,spanA, kerA] = singular_strakos(n, kernel_dim, a, b, rho)
     R = rand(n);
     [Q,~] = qr(R);
     spanA = Q(1:end-kernel_dim, :);
-    kerA = Q(end-kernel_dim+1:end, :);
+    kerA = Q(end-kernel_dim+1:end, :); %matice s dim = kernle_dim x n, plus už je ortogonální (tzn sloupce jsou ortonormální)
     A = Q'*D*Q; %uz je sym
 end

@@ -59,6 +59,7 @@ for i = 1:size(b,2)
         size(X_matrices{i}) 
         % X_projected_ker{i} = kerA* X_matrices{i};
         % P_projected_ker{i} = kerA*P_matrices{i};
+        %Ortogonálně promítnuté hodnoty:
         X_projected_ker{i} = kerA'*kerA* X_matrices{i};
         X_projected_span{i} = spanA'*spanA* X_matrices{i};
         P_projected_ker{i} = kerA'*kerA* P_matrices{i};
@@ -69,7 +70,7 @@ end
 
 
 
-%% Chybové matice
+%% Matice relativní chyby aproximace
 Error_matrices = cell(size(b,2), 1);
 for k = 1:size(b,2)
     error_detail_matrix = zeros(1,maxiter);
@@ -86,7 +87,7 @@ for k = 1:size(b,2)
     Error_matrices{k} = error_matrix;
 end
 
-%% Vykreslení detailu divergence
+%% Vykreslení detailu divergence - je presne videt v jakém kroku metoda diverguje
 Convergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
 for k=1:size(b,2)
     error_detail_matrix = zeros(1,maxiter);
@@ -109,11 +110,11 @@ for k = 1:size(b,2)
         Norm_xi = norm(X(:,i),2);
         error_matrix_ker(1,i-1) = Norm_xi/first_vector_x1;
         if (i > 5 && error_matrix_ker(1,i-1)==1)
-            error_matrix_ker(1,i:end) =0; %pripsala jsem _ker
+            error_matrix_ker(1,i:end) =0;
             break
         end
     end
-    Error_matrices_kernel{k} = error_matrix_ker; %pripsala jsem _ker
+    Error_matrices_kernel{k} = error_matrix_ker; 
 end
 
 %Error matrices for span component of x_k
@@ -145,8 +146,8 @@ for k=1:size(b,2)
     A_orthogonality_matrices_p{k} = p_a_orthogonality_matrix;
 end
 
-%comparing Gamma components
-% secist ker a span a porovnat ciste se spanem.
+%comparing Gamma components - for comparison of Gamma/Span component of
+%Gamma, and also for comparing ratio between Gamma/Gamma_hat
 Span_components = cell(size(b,2), 1);
 Ker_components = cell(size(b,2), 1);
 Combined_components = cell(size(b,2), 1);
@@ -171,6 +172,7 @@ for k = 1: size(b,2)
         ker_component_matrix(1,i) = (b_kernel'*b_kernel)/denominator;
         gamma_hat_matrix(1,i) = P(:,i)'*S*(converged_x-X(:,i))/denominator;
         combined_component_matrix(1,:) = span_component_matrix+ker_component_matrix;
+        %Zde se snažím spocítat Gamma/Gamma_hat:
         ratio_matrix(1,i) = combined_component_matrix(1,:)/gamma_hat_matrix(1,:);
         %ratio_matrix(1,i) = combined_component_matrix(1,:)/span_component_matrix(1,i);
     end
@@ -181,7 +183,8 @@ for k = 1: size(b,2)
     Ratio_values{k} = ratio_matrix;
 end
 
-% checking when gamma_i/2 > gammahat
+% checking when gamma_i/2 > gammahat - gives us a matrix of divergence
+% points to check against the results of the experiment
 gamma_matrix_unperturbed = Gamma_matrices{1};
 divergence_points = zeros(size(b,2),1);
 for k = 2: size(b,2)
@@ -199,7 +202,8 @@ for k = 2: size(b,2)
     end
 end
 
-% looking at ratio between gamma and gamma_hat (from unperturbed case)
+% looking at ratio between gamma and gamma_hat (from unperturbed case) -
+% this was the wrong way of counting the ratios
 Ratio_unperturbed_values = cell(size(b,2), 1);
 gamma_hat = Gamma_matrices{1};
 for k = 2:size(b,2)
@@ -255,7 +259,7 @@ colors = {'r', 'g', 'b', 'm', 'c', 'y', 'k', 'b'};
 size(Error_matrices{1}(1:maxiter));
 size(1:maxiter);
 
-%% plotting
+%% purely plotting values counted above
 
 figure
 hold on;

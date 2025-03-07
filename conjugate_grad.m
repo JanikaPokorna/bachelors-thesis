@@ -12,7 +12,7 @@ function [x,X,i,P,R,Gamma,Delta] = conjugate_grad(A, b, x0, maxiter, tol)
         tol = 1e-7
     end
     n = size(A, 1); 
-    R = zeros(n,maxiter+1);
+    R = zeros(n, maxiter+1);
     P = zeros(n, maxiter+1);
     X = zeros(n, maxiter+1);
     Gamma = zeros(1,maxiter+1);
@@ -25,13 +25,13 @@ function [x,X,i,P,R,Gamma,Delta] = conjugate_grad(A, b, x0, maxiter, tol)
     while (sqrt(r_prod_old) > tol && i < maxiter)
         r_prod_old = R(:,i)' * R(:,i);
         p_prod =  A * P(:,i);
-        Gamma(1,i) = r_prod_old/(P(:,i)' * p_prod);
-        R(:,i+1) = R(:,i) - Gamma(1,i) * p_prod;
+        Gamma(i) = r_prod_old/(P(:,i)' * p_prod);
+        R(:,i+1) = R(:,i) - Gamma(i) * p_prod;
         X(:,i) = x;
-        x = x + Gamma(1,i) * P(:,i);
+        x = x + Gamma(i) * P(:,i);
         r_prod_new = R(:,i+1)' * R(:,i+1);
-        Delta(1,i) = r_prod_new / r_prod_old;
-        P(:,i+1) = R(:,i+1) + Delta(1,i) * P(:,i);
+        Delta(i) = r_prod_new / r_prod_old;
+        P(:,i+1) = R(:,i+1) + Delta(i) * P(:,i);
         r_prod_old = r_prod_new;
         i = i+1;
     end

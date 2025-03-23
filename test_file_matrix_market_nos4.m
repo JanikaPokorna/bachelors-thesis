@@ -1,51 +1,27 @@
-%% test file matrix market - bcsstk04
+%% test file matrix market - nos7
 
 betas = [0,1e-20,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
 tol = 1e-15;
 maxiter = 4000;
-
-
-%% load matrix
-
-% new_data = importdata('matrices/matrix_market/positive-definite/bcsstk04.mat');
-% new_matrix = new_data.A;
-% n = size(new_matrix,1);
-
-new_matrix = mmread('matrices/matrix_market/positive-definite/bcsstm26.mtx');
-runName = 'Experiment_bcsstm26';
-% new_matrix = mmread('matrices/matrix_market/positive-definite/1138_bus.mtx');
-% runName = 'Experiment_1138_bus';
-% new_matrix = mmread('matrices/matrix_market/positive-definite/nos7.mtx');
-% runName = 'Experiment_nos7';
-% new_matrix = mmread('matrices/matrix_market/positive-definite/s2rmt3m1.mtx');
-% runName = 'Experiment_s2rmt3m1';
-
+A = mmread('matrices/matrix_market/positive-semidefinite/nos4.mtx');
+runName = 'Experiment_nos4';
+sizeA = size(A,1);
 
 folderPath = fullfile(pwd, runName);
 if ~exist(folderPath, 'dir')
     mkdir(folderPath);
 end
 
-n = size(new_matrix,1);
+n = size(A,1);
 x0 = zeros(n,1);
 
+%right hand side vector b
+[V,D] = eigs(A,sizeA);
+span_A = V(:,1:sizeA-1);
+ker_A = V(:,sizeA);
+b = make_multi_vector_b(span_A',ker_A',betas); % musim do funkce dosadit radky
+b_ker = ker_A*ker_A' * b;
 
-%% find eigenvalues
-
-[V,D] = eigs(new_matrix,n);
-
-%% modify to semi-definite
-D(n,n) = 0;
-M = V * D * V';
-
-%% create right hand side
-
-span_M = V(:,1:n-1); % sloupce
-ker_M = V(:,n);
-% is_in_kernel = norm(M * ker_M) < 1e-10
-
-b = make_multi_vector_b(span_M',ker_M',betas); % musim do funkce dosadit radky
-b_ker = ker_M*ker_M' * b;
 %% plot of eigenvalues
 
 figure(1);
@@ -67,7 +43,7 @@ R_projected_span = cell(size(b,2), 1);
 X_projected_span = cell(size(b,2), 1);
 
 for i = 1:size(b,2)
-    [x, X_i,l,P_i,R_i,Gamma_i,Delta_i] = conjugate_grad(M, b(:,i),x0,maxiter,tol);
+    [x, X_i,l,P_i,R_i,Gamma_i,Delta_i] = conjugate_grad(A, b(:,i),x0,maxiter,tol);
     if i == 1
         converged_x = x;
         len = l;
@@ -77,16 +53,16 @@ for i = 1:size(b,2)
     P_matrices{i,1} = P_i;
     R_matrices{i,1} = R_i;
     % Oddělení komponenty v jádře
-    column_norms = norm(ker_M', 2);  % normy sloupců
+    column_norms = norm(ker_A', 2);  % normy sloupců
     is_orthonormal_cols = all(abs(column_norms - 1) < eps);
     if is_orthonormal_cols == true
         %kontrola dimenzí
-        size(ker_M')
+        size(ker_A')
         size(X_matrices{i}) 
     end
-    X_projected_ker{i} = (ker_M*ker_M')*X_matrices{i};
-    P_projected_ker{i} = (ker_M*ker_M')*P_matrices{i};
-    R_projected_span{i} = (span_M*span_M')*R_matrices{i};
+    X_projected_ker{i} = (ker_A*ker_A')*X_matrices{i};
+    P_projected_ker{i} = (ker_A*ker_A')*P_matrices{i};
+    R_projected_span{i} = (span_A*span_A')*R_matrices{i};
 end
 
 %% error matrices
@@ -96,8 +72,8 @@ for k = 1:size(b,2)
     error_matrix = zeros(1,maxiter);
     X = X_matrices{k};
     for i = 1:maxiter
-        M_norm_xi = sqrt((converged_x - X(:,i))'*M*(converged_x - X(:,i)));
-        error_matrix(1,i) = M_norm_xi/(sqrt((converged_x - x0)'*M*(converged_x - x0)));
+        M_norm_xi = sqrt((converged_x - X(:,i))'*A*(converged_x - X(:,i)));
+        error_matrix(1,i) = M_norm_xi/(sqrt((converged_x - x0)'*A*(converged_x - x0)));
         if (i > 5 && error_matrix(1,i)==1)
             error_matrix(1,i:end) = 0;
             break
@@ -168,10 +144,10 @@ for k = 1: size(b,2)
     P = P_matrices{k};
     b_kernel = b_ker(:,k);
     for i=1:maxiter
-        denominator = P(:,i)'*M*P(:,i);
-        span_component_matrix(1,i) = (R(:,i)'*R(:,i))/denominator;
-        ker_component_matrix(1,i) = (b_kernel'*b_kernel)/denominator;
-        gamma_hat_matrix(i) = P(:,i)'*M*(converged_x-X(:,i))/denominator;
+        denominator = P(:,i)'*A*P(:,i);
+        span_component_matrix(i) = (R(:,i)'*R(:,i))/denominator;
+        ker_component_matrix(i) = (b_kernel'*b_kernel)/denominator;
+        gamma_hat_matrix(i) = P(:,i)'*A*(converged_x-X(:,i))/denominator;
         combined_component_matrix(i) = span_component_matrix(i)+ker_component_matrix(i);
         ratio_matrix(i) = combined_component_matrix(1,i)/gamma_hat_matrix(i);
     end
@@ -239,7 +215,7 @@ xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 ylim([0, inf]);
 xlim([0,len]);
-legend(h, legend_entries, 'Location', 'best');
+% legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
@@ -258,7 +234,7 @@ end
 xlabel('Step k')
 ylabel('Gamma values')
 title('Values of Gamma')
-legend(h, legend_entries, 'Location', 'best');
+% legend(h, legend_entries, 'Location', 'best');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
@@ -278,7 +254,7 @@ xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 ylim([0, inf]);
 xlim([0,len+30])
-legend(h, legend_entries, 'Location', 'best');
+% legend(h, legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');

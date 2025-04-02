@@ -10,7 +10,7 @@ end
 n = 25;
 sizeA = n^2;
 A = gallery('neumann',sizeA);
-maxiter = 1000;
+maxiter = 300;
 tol = 1e-15;
 x0 = zeros(sizeA,1);
 betas = [0,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
@@ -24,11 +24,8 @@ b_ker = ker_A*ker_A' * b;
 
 %% plot of eigenvalues
 
-figure(1);
+figure;
 semilogy(diag(D), 'or');
-title('Diagonal values of the matrix');
-xlabel('Index');
-ylabel('Diagonal Value');
 grid on;
 
 %% CG
@@ -83,7 +80,7 @@ for k = 1:size(b,2)
 end
 
 %% Vykreslení detailu divergence
-Convergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
+Divergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
 for k=1:size(b,2)
     error_detail_matrix = zeros(1,maxiter);
     error_matrix_unperturbed = Error_matrices{1};
@@ -91,11 +88,10 @@ for k=1:size(b,2)
     for i= 1:maxiter
         error_detail_matrix(1,i) = (error_matrix_perturbed(1,i)-error_matrix_unperturbed(1,i))/error_matrix_unperturbed(1,i);
     end
-    Convergence_detail_matrices{k} = error_detail_matrix;
+    Divergence_detail_matrices{k} = error_detail_matrix;
 end
 
 %Error matrices for kernel component of x_k
-% nedava smysl vykreslovat relativne, protoze delime skoro nulou
 Error_matrices_kernel = cell(size(b,2), 1);
 for k = 1:size(b,2)
     error_matrix_ker = zeros(1,maxiter);
@@ -125,6 +121,20 @@ for k=1:size(b,2)
     end
 Norm_matrices_p{k} = p_norm_matrix;
 end
+
+
+% checking A-orthogonality of vectors P_k against the previous vector P_{k-1}
+A_orthogonality_matrices_p = cell(size(b,2), 1);
+for k = 1:size(b,2)
+    P = P_matrices{k};
+    p_a_orthogonality_matrix = zeros(1,maxiter);
+    for i = 2:maxiter
+        A_orthogonality_check = P(:,i)'*A*P(:,i-1);
+        p_a_orthogonality_matrix(1,i-1) = abs(A_orthogonality_check);
+    end
+    A_orthogonality_matrices_p{k} = p_a_orthogonality_matrix;
+end
+
 
 %comparing Gamma components
 Span_components = cell(size(b,2), 1);
@@ -220,7 +230,9 @@ set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 %%
 figure
@@ -234,11 +246,13 @@ end
 xlabel('Step k')
 ylabel('Gamma values')
 title('Values of Gamma')
-% legend(h, legend_entries, 'Location', 'best');
+legend( legend_entries, 'Location', 'best');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
 figure
@@ -254,12 +268,14 @@ xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 ylim([0, inf]);
 xlim([0,len+30])
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
 % for i = 1:size(b,2)
@@ -281,6 +297,30 @@ saveas(gcf, fullfile(folderPath, filename));
 
 for i = 1:size(b,2)
     figure
+    legend_entries = cell(1, size(b,2));
+    hold on;
+    h_combined = semilogy(1:maxiter, Combined_components{i}(1:maxiter),'.-r');
+    h_span = semilogy(1:maxiter, Span_components{i}(1:maxiter),'.-b');
+    title('Comparison of gamma components');
+    xlabel('Step k', 'FontName', 'AvantGarde');
+    ylabel('Value', 'FontName', 'AvantGarde');
+    set(gca, 'YScale', 'log');
+    set([ h_combined h_span], 'LineWidth', 1.5, 'MarkerSize', 6);
+    set( h_combined,'MarkerFaceColor',[.8 0 0],'MarkerEdgeColor','r');
+    set( h_span, 'MarkerFaceColor',[.0 0 .8],'MarkerEdgeColor','b');
+    xlim([0,len]);
+    legend('Combined Components', 'Span Component', 'Location', 'best');
+    hold off;
+    figTitle = get(get(gca, 'Title'), 'String');
+safeTitle = regexprep(figTitle, '[^\w]', '_');
+filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s_%d.png', runName, safeTitle, i);
+saveas(gcf, fullfile(folderPath, filename));
+end
+
+for i = 1:size(b,2)
+    figure
     hold on;
     h_relative = plot(1:maxiter,Ratio_values{i}(1:maxiter),'.-b');
     plot(1:maxiter,2,'.-r');
@@ -290,14 +330,39 @@ for i = 1:size(b,2)
     hold off;
     figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s_%d.epsc', runName, safeTitle, i);
+filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s_%d.png', runName, safeTitle,i);
 saveas(gcf, fullfile(folderPath, filename));
 end
+
+figure;
+hold on;
+legend_entries = cell(1, size(b,2));
+for i = 1:size(b,2) 
+    semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter),['o-', colors{i}]);
+    hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
+end
+title('Deviation in A-orthogonality in computation of \delta.');
+xlabel('Step k');
+ylabel('||x - x_i||_A / ||x - x_0||_A');
+% ylim([0, inf]);
+xlim([0,len]);
+legend(legend_entries, 'Location', 'best');
+set(gca, 'YScale', 'log');
+hold off;
+figTitle = get(get(gca, 'Title'), 'String');
+safeTitle = regexprep(figTitle, '[^\w]', '_');
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename));
 
 figure 
 for i = 1:size(b,2)
     hold on;
-    h_ratio = plot(1:maxiter,Convergence_detail_matrices{i}(1:maxiter),'.-b');
+    h_ratio = plot(1:maxiter,Divergence_detail_matrices{i}(1:maxiter),'.-b');
     legend('Ratio of a-norm of x in perturbed vs. unperturbed ', 'Location', 'best');
     xlim([0,len]);
     ylim([0,1.5]);
@@ -305,5 +370,7 @@ for i = 1:size(b,2)
 end
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));

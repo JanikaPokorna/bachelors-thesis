@@ -12,11 +12,14 @@ betas = [0,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
 [S,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
 diagonal_values = diag(D);
 
+
 %% create right-hand side vector b
 b = make_multi_vector_b(spanA,kerA,betas);
 % b kernel component
 b_ker = kerA'*kerA * b;
 % b_kernel'*b_kernel;
+whos b
+% bsize = size(b,2);
 
 %% Plot the eigenvalues of symmetric PD strakos matrix 
 figure;
@@ -46,11 +49,11 @@ for i = 1:size(b,2)
         len = l;
     end
     X_matrices{i} = X_i;
-    Gamma_matrices{i} = Gamma_i;
-    Delta_matrices{i} = Delta_i;
-    P_matrices{i} = P_i;
-    R_matrices{i} = R_i;
-    % Oddělení komponenty v jádře
+    Gamma_matrices{i,1} = Gamma_i;
+    Delta_matrices{i,1} = Delta_i;
+    P_matrices{i,1} = P_i;
+    R_matrices{i,1} = R_i;
+    % Oddělení komponnty v jádře
     column_norms = norm(kerA, 2);  % normy sloupců
     is_orthonormal_cols = all(abs(column_norms - 1) < eps);
     if is_orthonormal_cols == true
@@ -73,14 +76,14 @@ end
 %% Matice relativní chyby aproximace
 Error_matrices = cell(size(b,2), 1);
 for k = 1:size(b,2)
-    %error_detail_matrix = zeros(1,maxiter);
+    error_detail_matrix = zeros(1,maxiter);
     error_matrix = zeros(1,maxiter);
     X = X_matrices{k};
     for i = 1:maxiter
         A_norm_xi = sqrt((converged_x - X(:,i))'*S*(converged_x - X(:,i)));
-        error_matrix(i) = A_norm_xi/(sqrt((converged_x - x0)'*S*(converged_x - x0))); 
-        if (i > 5 && error_matrix(i)==1)
-            error_matrix(i:end) = 0;
+        error_matrix(1,i) = A_norm_xi/(sqrt((converged_x - x0)'*S*(converged_x - x0))); 
+        if (i > 5 && error_matrix(1,i)==1)
+            error_matrix(1,i:end) =0;
             break
         end
     end
@@ -89,7 +92,7 @@ end
 
 %% Vykreslení detailu divergence - je presne videt v jakém kroku metoda diverguje
 Convergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
-for k = 1:size(b,2)
+for k=1:size(b,2)
     error_detail_matrix = zeros(1,maxiter);
     error_matrix_unperturbed = Error_matrices{1};
     error_matrix_perturbed = Error_matrices{k};
@@ -99,7 +102,7 @@ for k = 1:size(b,2)
     Convergence_detail_matrices{k} = error_detail_matrix;
 end
 
-%% TOTO NENI PRILIS PRESNE, VYKRESUJEME PROJEKCI APROXIMACE (NIKOLI CHYBU)
+%%
 %Error matrices for kernel component of x_k
 Error_matrices_kernel = cell(size(b,2), 1);
 for k = 1:size(b,2)
@@ -117,7 +120,6 @@ for k = 1:size(b,2)
     Error_matrices_kernel{k} = error_matrix_ker; 
 end
 
-% TOTO NENI PRILIS PRESNE, VYKRESUJEME PROJEKCI APROXIMACE (NIKOLI CHYBU)
 %Error matrices for span component of x_k
 Error_matrices_range = cell(size(b,2), 1);
 for k = 1:size(b,2)
@@ -137,7 +139,7 @@ end
 
 % checking A-orthogonality of vectors P_k against the previous vector P_{k-1}
 A_orthogonality_matrices_p = cell(size(b,2), 1);
-for k = 1:size(b,2)
+for k=1:size(b,2)
     P = P_matrices{k};
     p_a_orthogonality_matrix = zeros(1,maxiter);
     for i = 2:maxiter
@@ -168,14 +170,13 @@ for k = 1: size(b,2)
     b_kernel = b_ker(:,k);   
     for i=1:maxiter
         denominator = P(:,i)'*S*P(:,i);
-        denominator_matrix(i) = denominator;
-        span_component_matrix(i) = (R(:,i)'*R(:,i))/denominator;
-        ker_component_matrix(i) = (b_kernel'*b_kernel)/denominator;
-        gamma_hat_matrix(i) = P(:,i)'*S*(converged_x-X(:,i))/denominator;
-        combined_component_matrix(i) = span_component_matrix(i)+ker_component_matrix(i);
+        denominator_matrix(1,i) = denominator;
+        span_component_matrix(1,i) = (R(:,i)'*R(:,i))/denominator;
+        ker_component_matrix(1,i) = (b_kernel'*b_kernel)/denominator;
+        gamma_hat_matrix(1,i) = P(:,i)'*S*(converged_x-X(:,i))/denominator;
+        combined_component_matrix(1,:) = span_component_matrix+ker_component_matrix;
         %Zde se snažím spocítat Gamma/Gamma_hat:
-        %OPRAVENO ZDE, PRIDAN VYPOCET i-TEHO PRVKU
-        ratio_matrix(i) = combined_component_matrix(1,i)/gamma_hat_matrix(i);
+        ratio_matrix(1,i) = combined_component_matrix(1,:)/gamma_hat_matrix(1,:);
         %ratio_matrix(1,i) = combined_component_matrix(1,:)/span_component_matrix(1,i);
     end
     Span_components{k} = span_component_matrix;
@@ -185,7 +186,6 @@ for k = 1: size(b,2)
     Ratio_values{k} = ratio_matrix;
 end
 
-% NENI POTREBA
 % checking when gamma_i/2 > gammahat - gives us a matrix of divergence
 % points to check against the results of the experiment
 gamma_matrix_unperturbed = Gamma_matrices{1};

@@ -1,6 +1,6 @@
 %% test file matrix market - nos7
 
-betas = [0,1e-20,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
+betas = [0, 1e-5, 1e-4, 1e-3, 1e-2];
 tol = 1e-15;
 maxiter = 4000;
 A = mmread('matrices/matrix_market/positive-semidefinite/nos4.mtx');
@@ -11,8 +11,8 @@ folderPath = fullfile(pwd, runName);
 if ~exist(folderPath, 'dir')
     mkdir(folderPath);
 end
-
-n = size(A,1);
+%%
+n = sizeA;
 x0 = zeros(n,1);
 
 %right hand side vector b
@@ -24,11 +24,8 @@ b_ker = ker_A*ker_A' * b;
 
 %% plot of eigenvalues
 
-figure(1);
+figure;
 semilogy(diag(D), 'or');
-title('Diagonal values of the matrix');
-xlabel('Index');
-ylabel('Diagonal Value');
 grid on;
 
 %% CG
@@ -100,7 +97,6 @@ Error_matrices_kernel = cell(size(b,2), 1);
 for k = 1:size(b,2)
     error_matrix_ker = zeros(1,maxiter);
     X = X_projected_ker{k};
-    first_vector_x1 = norm(X(:,2),2);
     for i = 2:maxiter
         Norm_xi = norm(X(:,i),2);
         error_matrix_ker(1,i-1) = Norm_xi;
@@ -126,6 +122,18 @@ for k=1:size(b,2)
 Norm_matrices_p{k} = p_norm_matrix;
 end
 
+% checking A-orthogonality of vectors P_k against the previous vector P_{k-1}
+A_orthogonality_matrices_p = cell(size(b,2), 1);
+for k = 1:size(b,2)
+    P = P_matrices{k};
+    p_a_orthogonality_matrix = zeros(1,maxiter);
+    for i = 2:maxiter
+        A_orthogonality_check = P(:,i)'*A*P(:,i-1);
+        p_a_orthogonality_matrix(1,i-1) = abs(A_orthogonality_check);
+    end
+    A_orthogonality_matrices_p{k} = p_a_orthogonality_matrix;
+end
+
 %comparing Gamma components
 Span_components = cell(size(b,2), 1);
 Ker_components = cell(size(b,2), 1);
@@ -145,8 +153,8 @@ for k = 1: size(b,2)
     b_kernel = b_ker(:,k);
     for i=1:maxiter
         denominator = P(:,i)'*A*P(:,i);
-        span_component_matrix(i) = (R(:,i)'*R(:,i))/denominator;
-        ker_component_matrix(i) = (b_kernel'*b_kernel)/denominator;
+        span_component_matrix(1,i) = (R(:,i)'*R(:,i))/denominator;
+        ker_component_matrix(1,i) = (b_kernel'*b_kernel)/denominator;
         gamma_hat_matrix(i) = P(:,i)'*A*(converged_x-X(:,i))/denominator;
         combined_component_matrix(i) = span_component_matrix(i)+ker_component_matrix(i);
         ratio_matrix(i) = combined_component_matrix(1,i)/gamma_hat_matrix(i);
@@ -215,14 +223,16 @@ xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 ylim([0, inf]);
 xlim([0,len]);
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
-%%
+
 figure
 hold on;
 legend_entries = cell(1, size(b,2));
@@ -234,11 +244,13 @@ end
 xlabel('Step k')
 ylabel('Gamma values')
 title('Values of Gamma')
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
 figure
@@ -254,13 +266,16 @@ xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 ylim([0, inf]);
 xlim([0,len+30])
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
+
 
 % for i = 1:size(b,2)
 %     figure;
@@ -290,9 +305,35 @@ for i = 1:size(b,2)
     hold off;
     figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s_%d.epsc', runName, safeTitle, i);
+filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s_%d.png', runName, safeTitle, i);
 saveas(gcf, fullfile(folderPath, filename));
 end
+
+figure;
+hold on;
+legend_entries = cell(1, size(b,2));
+for i = 1:size(b,2) 
+    semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter),['o-', colors{i}]);
+    hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
+end
+title('Deviation in A-orthogonality in computation of \delta.');
+xlabel('Step k');
+ylabel('||x - x_i||_A / ||x - x_0||_A');
+% ylim([0, inf]);
+xlim([0,len]);
+legend(legend_entries, 'Location', 'best');
+set(gca, 'YScale', 'log');
+hold off;
+figTitle = get(get(gca, 'Title'), 'String');
+safeTitle = regexprep(figTitle, '[^\w]', '_');
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename));
+
 
 figure 
 for i = 1:size(b,2)
@@ -305,5 +346,7 @@ for i = 1:size(b,2)
 end
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));

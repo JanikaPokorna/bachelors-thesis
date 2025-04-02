@@ -1,9 +1,11 @@
 %% test file matrix market - bcsstk04
 
-betas = [0,1e-20,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
+% betas = [0,1e-20,1e-8, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2];
+% tol = 1e-15;
+% maxiter = 4000;
+maxiter = 6000;
+betas = [0, 1e-4, 1e-3, 1e-2];
 tol = 1e-15;
-maxiter = 4000;
-
 
 %% load matrix
 
@@ -11,14 +13,14 @@ maxiter = 4000;
 % new_matrix = new_data.A;
 % n = size(new_matrix,1);
 
-new_matrix = mmread('matrices/matrix_market/positive-definite/bcsstm26.mtx');
-runName = 'Experiment_bcsstm26';
+% new_matrix = mmread('matrices/matrix_market/positive-definite/bcsstm26.mtx');
+% runName = 'Experiment_bcsstm26';
 % new_matrix = mmread('matrices/matrix_market/positive-definite/1138_bus.mtx');
 % runName = 'Experiment_1138_bus';
 % new_matrix = mmread('matrices/matrix_market/positive-definite/nos7.mtx');
 % runName = 'Experiment_nos7';
-% new_matrix = mmread('matrices/matrix_market/positive-definite/s2rmt3m1.mtx');
-% runName = 'Experiment_s2rmt3m1';
+new_matrix = mmread('matrices/matrix_market/positive-definite/s2rmt3m1.mtx');
+runName = 'Experiment_s2rmt3m1';
 
 
 folderPath = fullfile(pwd, runName);
@@ -50,9 +52,6 @@ b_ker = ker_M*ker_M' * b;
 
 figure(1);
 semilogy(diag(D), 'or');
-title('Diagonal values of the matrix');
-xlabel('Index');
-ylabel('Diagonal Value');
 grid on;
 
 %% CG
@@ -150,6 +149,18 @@ for k=1:size(b,2)
 Norm_matrices_p{k} = p_norm_matrix;
 end
 
+% checking A-orthogonality of vectors P_k against the previous vector P_{k-1}
+A_orthogonality_matrices_p = cell(size(b,2), 1);
+for k = 1:size(b,2)
+    P = P_matrices{k};
+    p_a_orthogonality_matrix = zeros(1,maxiter);
+    for i = 2:maxiter
+        A_orthogonality_check = P(:,i)'*M*P(:,i-1);
+        p_a_orthogonality_matrix(1,i-1) = abs(A_orthogonality_check);
+    end
+    A_orthogonality_matrices_p{k} = p_a_orthogonality_matrix;
+end
+
 %comparing Gamma components
 Span_components = cell(size(b,2), 1);
 Ker_components = cell(size(b,2), 1);
@@ -218,6 +229,9 @@ for k = 2: size(b,2)
     end
 end
 
+
+
+
 colors = {'r', 'g', 'b', 'm', 'c', 'y', 'k', 'g', 'b'};
 
 %check dimensions
@@ -239,14 +253,16 @@ xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 ylim([0, inf]);
 xlim([0,len]);
-legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
-%%
+
 figure
 hold on;
 legend_entries = cell(1, size(b,2));
@@ -258,11 +274,13 @@ end
 xlabel('Step k')
 ylabel('Gamma values')
 title('Values of Gamma')
-legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
 figure
@@ -278,30 +296,16 @@ xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 ylim([0, inf]);
 xlim([0,len+30])
-legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
-% for i = 1:size(b,2)
-%     figure;
-%     hold on;
-%     h_combined = semilogy(1:maxiter, Combined_components{i}(1:maxiter),'.-r');
-%     h_span = semilogy(1:maxiter, Span_components{i}(1:maxiter),'.-b');
-%     title('Comparison of \gamma components');
-%     xlabel('Step k', 'FontName', 'AvantGarde');
-%     ylabel('Value', 'FontName', 'AvantGarde');
-%     set(gca, 'YScale', 'log');
-%     set([ h_combined h_span], 'LineWidth', 1.5, 'MarkerSize', 6);
-%     set( h_combined,'MarkerFaceColor',[.8 0 0],'MarkerEdgeColor','r');
-%     set( h_span, 'MarkerFaceColor',[.0 0 .8],'MarkerEdgeColor','b');
-%     xlim([divergence_points_approximate(1,i)-100,divergence_points_approximate(1,i)]);
-%     legend('Combined Components', 'Span Component', 'Location', 'best');
-%     hold off;
-% end
 
 for i = 1:size(b,2)
     figure
@@ -314,9 +318,34 @@ for i = 1:size(b,2)
     hold off;
     figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s_%d.epsc', runName, safeTitle, i);
+filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s_%d.png', runName, safeTitle, i);
 saveas(gcf, fullfile(folderPath, filename));
 end
+
+figure;
+hold on;
+legend_entries = cell(1, size(b,2));
+for i = 1:size(b,2) 
+    semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter),['o-', colors{i}]);
+    hold on;
+    legend_entries{i} = sprintf('\\beta = %g', betas(i));
+end
+title('Deviation in A-orthogonality in computation of \delta.');
+xlabel('Step k');
+ylabel('||x - x_i||_A / ||x - x_0||_A');
+% ylim([0, inf]);
+xlim([0,len]);
+legend(legend_entries, 'Location', 'best');
+set(gca, 'YScale', 'log');
+hold off;
+figTitle = get(get(gca, 'Title'), 'String');
+safeTitle = regexprep(figTitle, '[^\w]', '_');
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename));
 
 figure 
 for i = 1:size(b,2)
@@ -329,5 +358,7 @@ for i = 1:size(b,2)
 end
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));

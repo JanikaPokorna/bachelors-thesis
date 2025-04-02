@@ -21,15 +21,11 @@ diagonal_values = diag(D);
 b = make_multi_vector_b(spanA,kerA,betas);
 % b kernel component
 b_ker = kerA'*kerA * b;
-% b_kernel'*b_kernel;
 
 
 %% Plot the eigenvalues of symmetric PD strakos matrix 
 figure;
 semilogy(diag(D), 'or');
-title('Diagonal values of the matrix');
-xlabel('Index');
-ylabel('Diagonal Value');
 grid on;
 
 
@@ -93,8 +89,8 @@ for k = 1:size(b,2)
     Error_matrices{k} = error_matrix;
 end
 
-%% Vykreslení detailu divergence - je presne videt v jakém kroku metoda diverguje
-Convergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
+%% Vykreslení detailu divergence
+Divergence_detail_matrices = cell(size(b,2), 1); %pro pozdejsi detail
 for k = 1:size(b,2)
     error_detail_matrix = zeros(1,maxiter);
     error_matrix_unperturbed = Error_matrices{1};
@@ -102,10 +98,9 @@ for k = 1:size(b,2)
     for i= 1:maxiter
         error_detail_matrix(1,i) = (error_matrix_perturbed(1,i)-error_matrix_unperturbed(1,i))/error_matrix_unperturbed(1,i);
     end
-    Convergence_detail_matrices{k} = error_detail_matrix;
+    Divergence_detail_matrices{k} = error_detail_matrix;
 end
 
-%% TOTO NENI PRILIS PRESNE, VYKRESUJEME PROJEKCI APROXIMACE (NIKOLI CHYBU)
 %Error matrices for kernel component of x_k
 Error_matrices_kernel = cell(size(b,2), 1);
 for k = 1:size(b,2)
@@ -114,7 +109,7 @@ for k = 1:size(b,2)
     first_vector_x1 = norm(X(:,2),2);
     for i = 2:maxiter
         Norm_xi = norm(X(:,i),2);
-        error_matrix_ker(1,i-1) = Norm_xi/first_vector_x1;
+        error_matrix_ker(1,i-1) = Norm_xi;
         if (i > 5 && error_matrix_ker(1,i-1)==1)
             error_matrix_ker(1,i:end) =0;
             break
@@ -245,26 +240,9 @@ end
 %     Error_matrices_linesearch{k} = error_matrix_linesearch;
 % end
 
-% Looking at deviation from A-orthogonality in each step compared to
-% previous direction vector from perturbed case 
-A_orthogonality_deviation_matrices = cell(size(b,2), 1);
-p_deviation_matrices = cell(size(b,2), 1);
-for k = 1:size(b,2)
-    P = P_matrices{1};
-    R = R_matrices{1};
-    p_a_orthogonality_deviation_matrix = zeros(1,maxiter);
-    delta_deviation = Delta_matrices{k};
-    p_deviation_matrices{k}(:,1) = P(:,1);
-    for i = 2:maxiter
-        p_deviation = R(:,i) + delta_deviation(1,i-1)*P(:,i-1);
-        p_deviation_matrices{k}(:,i) = p_deviation; 
-        p_a_orthogonality_deviation_matrix(1,i-1) = abs((p_deviation')*S*P(:,i-1));
-        % p_a_orthogonality_deviation_matrix(1,i-1) = abs((p_deviation')*S*p_deviation_matrices{k}(:,i-1));
-    end
-    A_orthogonality_deviation_matrices{k} = p_a_orthogonality_deviation_matrix;
-end
+
 %%
-colors = {'r', 'g', 'b', 'm', 'c', 'y', 'k', 'b'};
+colors = {'r', 'g', 'b', 'm', 'c', 'k', 'b', 'b'};
 size(Error_matrices{1}(1:maxiter));
 size(1:maxiter);
 
@@ -280,16 +258,18 @@ end
 title('Relative error for different delta values');
 xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
-% legend(h, legend_entries, 'Location', 'best');
+legend( legend_entries, 'Location', 'best');
 xlim([0,len]);
 set(gca, 'YScale', 'log');
 hold off;
 
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
-print(gcf, '-depsc', fullfile(folderPath, filename));
-%%
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename));
+
 figure
 hold on;
 legend_entries = cell(1, size(b,2));
@@ -301,11 +281,13 @@ end
 xlabel('Step k')
 ylabel('Gamma values')
 title('Values of Gamma')
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
 figure
@@ -321,12 +303,14 @@ xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 % ylim([0, inf]);
 xlim([0,len+30])
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
 figure
@@ -342,36 +326,37 @@ xlabel('Step k');
 ylabel('||x_i||/ ||x_0||');
 % ylim([-inf, inf]);
 xlim([0,len+30])
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 
-figure
-hold on;
-legend_entries = cell(1, size(b,2));
-for i = 1:size(b,2)
-    h(i) = semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter), ['o-', colors{i}]);
-    hold on;
-    legend_entries{i} = sprintf('\\beta = %g', betas(i));
-end
-title('A orthogonality of vector p_k against previous vector p_{k-1}');
-xlabel('Step k');
-ylabel('A');
-% ylim([0, inf]);  
-xlim([0, len+30]);
-% legend(h, legend_entries, 'Location', 'best');
-set(gca, 'YScale', 'log');
-yticks([-1e-13, 0, 1e-13]);
-hold off;
-figTitle = get(get(gca, 'Title'), 'String');
-safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
-saveas(gcf, fullfile(folderPath, filename));
-
+% figure
+% hold on;
+% legend_entries = cell(1, size(b,2));
+% for i = 1:size(b,2)
+%     h(i) = semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter), ['o-', colors{i}]);
+%     hold on;
+%     legend_entries{i} = sprintf('\\beta = %g', betas(i));
+% end
+% title('A orthogonality of vector p_k against previous vector p_{k-1}');
+% xlabel('Step k');
+% ylabel('A'); 
+% xlim([0, len+30]);
+% legend(legend_entries, 'Location', 'best');
+% set(gca, 'YScale', 'log');
+% hold off;
+% figTitle = get(get(gca, 'Title'), 'String');
+% safeTitle = regexprep(figTitle, '[^\w]', '_');
+% filename = sprintf('%s_%s.eps', runName, safeTitle);
+% saveas(gcf, fullfile(folderPath, filename),'epsc');
+% filename = sprintf('%s_%s.png', runName, safeTitle);
+% saveas(gcf, fullfile(folderPath, filename));
 
 % legend1 = ['\delta = 0', '\delta = 1e-6', '\delta = 1e-4','\delta = 1e-2', 'Location', 'best'];
 % for i=1:size(b,2)
@@ -394,7 +379,6 @@ saveas(gcf, fullfile(folderPath, filename));
 
 for i = 1:size(b,2)
     figure
-    legend_entries = cell(1, size(b,2));
     hold on;
     h_combined = semilogy(1:maxiter, Combined_components{i}(1:maxiter),'.-r');
     h_span = semilogy(1:maxiter, Span_components{i}(1:maxiter),'.-b');
@@ -410,7 +394,9 @@ for i = 1:size(b,2)
     hold off;
     figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s_%d.epsc', runName, safeTitle, i);
+filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s_%d.png', runName, safeTitle, i);
 saveas(gcf, fullfile(folderPath, filename));
 end
 
@@ -425,7 +411,9 @@ for i = 1:size(b,2)
     hold off;
     figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s_%d.epsc', runName, safeTitle, i);
+filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s_%d.png', runName, safeTitle, i);
 saveas(gcf, fullfile(folderPath, filename));
 end
 
@@ -433,7 +421,7 @@ figure;
 hold on;
 legend_entries = cell(1, size(b,2));
 for i = 1:size(b,2) 
-    semilogy(1:maxiter, A_orthogonality_deviation_matrices{i}(1:maxiter),['o-', colors{i}]);
+    semilogy(1:maxiter, A_orthogonality_matrices_p{i}(1:maxiter),['o-', colors{i}]);
     hold on;
     legend_entries{i} = sprintf('\\beta = %g', betas(i));
 end
@@ -442,25 +430,29 @@ xlabel('Step k');
 ylabel('||x - x_i||_A / ||x - x_0||_A');
 % ylim([0, inf]);
 xlim([0,len]);
-% legend(h, legend_entries, 'Location', 'best');
+legend(legend_entries, 'Location', 'best');
 set(gca, 'YScale', 'log');
 hold off;
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));
 %%
 figure 
 for i = 1:size(b,2)
     hold on;
-    h_ratio = plot(1:maxiter,Convergence_detail_matrices{i}(1:maxiter),['o-', colors{i}]);
+    h_ratio = plot(1:maxiter,Divergence_detail_matrices{i}(1:maxiter),['o-', colors{i}]);
     legend('Ratio of a-norm of x in perturbed vs. unperturbed ', 'Location', 'best');
     xlim([0,len]);
     ylim([0,1.5]);
     hold off;
 end
-title('The Ratio of convergence.');
+title('The Detail of convergence.');
 figTitle = get(get(gca, 'Title'), 'String');
 safeTitle = regexprep(figTitle, '[^\w]', '_');
-filename = sprintf('%s_%s.epsc', runName, safeTitle);
+filename = sprintf('%s_%s.eps', runName, safeTitle);
+saveas(gcf, fullfile(folderPath, filename),'epsc');
+filename = sprintf('%s_%s.png', runName, safeTitle);
 saveas(gcf, fullfile(folderPath, filename));

@@ -1,4 +1,4 @@
-function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA)
+function[] = run_analysis_Orthodir(runName, A, b, x0, maxiter, tol, betas, spanA, kerA)
     arguments 
         runName
         A
@@ -29,7 +29,7 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
     R_matrices = cell(size(b,2), 1);
     %CG + zaznamenání do proměnných
     for i = 1:size(b,2)
-        [x, X_i,l,P_i,R_i,Gamma_i,Delta_i] = conjugate_grad(A, b(:,i),x0,maxiter,tol);
+        [x, X_i,l,P_i,R_i,Gamma_i,Delta_i] = orthodir(A, b(:,i),x0,maxiter,tol);
         if i == 1
             converged_x = x;
             len = l;
@@ -133,44 +133,7 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
         A_orthogonality_matrices_p{k} = p_a_orthogonality_matrix;
     end
     
-    %comparing Gamma components - for comparison of Gamma/Span component of
-    %Gamma, and also for comparing ratio between Gamma/Gamma_hat
-    Span_components = cell(size(b,2), 1);
-    Ker_components = cell(size(b,2), 1);
-    Combined_components = cell(size(b,2), 1);
-    Denominator_values = cell(size(b,2), 1);
-    Ratio_values = cell(size(b,2), 1);
-    
-    for k = 1: size(b,2)
-        span_component_matrix = zeros(1,maxiter);
-        ker_component_matrix = zeros(1,maxiter);
-        combined_component_matrix = zeros(1,maxiter);
-        denominator_matrix = zeros(1,maxiter);
-        gamma_hat_matrix = zeros(1,maxiter);
-        ratio_matrix = zeros(1,maxiter);
-        R = R_projected_span{k};
-        P = P_matrices{k};
-        X = X_matrices{k};
-        b_kernel = b_ker(:,k);   
-        for i=1:maxiter
-            denominator = P(:,i)'*A*P(:,i);
-            denominator_matrix(i) = denominator;
-            span_component_matrix(i) = (R(:,i)'*R(:,i))/denominator;
-            ker_component_matrix(i) = (b_kernel'*b_kernel)/denominator;
-            gamma_hat_matrix(i) = P(:,i)'*A*(converged_x-X(:,i))/denominator;
-            combined_component_matrix(i) = span_component_matrix(i)+ker_component_matrix(i);
-            %Zde se snažím spocítat Gamma/Gamma_hat:
-            %OPRAVENO ZDE, PRIDAN VYPOCET i-TEHO PRVKU
-            ratio_matrix(i) = combined_component_matrix(1,i)/gamma_hat_matrix(i);
-            %ratio_matrix(1,i) = combined_component_matrix(1,:)/span_component_matrix(1,i);
-        end
-        Span_components{k} = span_component_matrix;
-        Ker_components{k} = ker_component_matrix;
-        Combined_components{k} = combined_component_matrix;
-        Denominator_values{k} = denominator_matrix;
-        Ratio_values{k} = ratio_matrix;
-    end
-    
+   
     colors = {'r', 'g', 'b', 'm', 'c', 'k', 'b', 'b'};
     size(Error_matrices{1}(1:maxiter));
     size(1:maxiter);
@@ -195,25 +158,7 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
     saveas(gcf, fullfile(folderPath, filename),'epsc');
     filename = sprintf('%s_%s.png', runName, safeTitle);
     saveas(gcf, fullfile(folderPath, filename));
-    
-    figure
-    hold on;
-    legend_entries = cell(1, size(b,2));
-    for i = 1:size(b,2)
-        h(i) = plot(1:len+1, Gamma_matrices{i}(1:len+1),'-', 'Color', colors{i}, 'LineWidth', 3);
-        hold on;
-        legend_entries{i} = sprintf('\\beta = %g', betas(i));
-    end
-    legend(legend_entries, 'Location', 'best');
-    xlim([0,len]);
-    set(gca, 'FontSize', 14);
-    hold off;
-    figTitle = 'Values of Gamma';
-    safeTitle = regexprep(figTitle, '[^\w]', '_');
-    filename = sprintf('%s_%s.eps', runName, safeTitle);
-    saveas(gcf, fullfile(folderPath, filename),'epsc');
-    filename = sprintf('%s_%s.png', runName, safeTitle);
-    saveas(gcf, fullfile(folderPath, filename));
+   
     
     figure
     hold on;
@@ -235,30 +180,7 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
     saveas(gcf, fullfile(folderPath, filename),'epsc');
     filename = sprintf('%s_%s.png', runName, safeTitle);
     saveas(gcf, fullfile(folderPath, filename));
-    
-    % figure
-    % hold on;
-    % legend_entries = cell(1, size(b,2));
-    % for i = 1:size(b,2)
-    %     h(i) = semilogy(1:maxiter, Error_matrices_range{i}(1:maxiter),['-', colors{i}]);
-    %     hold on;
-    %     legend_entries{i} = sprintf('\\beta = %g', betas(i));
-    % end
-    % title('Relative error - range components of x_i');
-    % xlabel('Step k');
-    % ylabel('||x_i||/ ||x_0||');
-    % % ylim([-inf, inf]);
-    % xlim([0,len+30])
-    % legend(legend_entries, 'Location', 'best');
-    % set(gca, 'YScale', 'log');
-    % hold off;
-    % figTitle = get(get(gca, 'Title'), 'String');
-    % safeTitle = regexprep(figTitle, '[^\w]', '_');
-    % filename = sprintf('%s_%s.eps', runName, safeTitle);
-    % saveas(gcf, fullfile(folderPath, filename),'epsc');
-    % filename = sprintf('%s_%s.png', runName, safeTitle);
-    % saveas(gcf, fullfile(folderPath, filename));
-    % 
+   
     figure
     hold on;
     legend_entries = cell(1, size(b,2));
@@ -278,44 +200,7 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
     saveas(gcf, fullfile(folderPath, filename),'epsc');
     filename = sprintf('%s_%s.png', runName, safeTitle);
     saveas(gcf, fullfile(folderPath, filename));
-    
-    for i = 1:size(b,2)
-        figure
-        hold on;
-        h_combined = semilogy(1:maxiter, Combined_components{i}(1:maxiter),'.-r');
-        h_span = semilogy(1:maxiter, Span_components{i}(1:maxiter),'.-b');
-        set(gca, 'YScale', 'log');
-        set(gca, 'FontSize', 14);
-        set([ h_combined h_span], 'LineWidth', 3, 'MarkerSize', 6);
-        set( h_combined,'MarkerFaceColor',[.8 0 0],'MarkerEdgeColor','r');
-        set( h_span, 'MarkerFaceColor',[.0 0 .8],'MarkerEdgeColor','b');
-        xlim([0,len]);
-        legend('Combined Components', 'Span Component', 'Location', 'best');
-        hold off;
-        figTitle = 'Comparison of gamma components';
-    safeTitle = regexprep(figTitle, '[^\w]', '_');
-    filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
-    saveas(gcf, fullfile(folderPath, filename),'epsc');
-    filename = sprintf('%s_%s_%d.png', runName, safeTitle, i);
-    saveas(gcf, fullfile(folderPath, filename));
-    end
-    
-    for i = 1:size(b,2)
-        figure
-        hold on;
-        h_relative = plot(1:maxiter,Ratio_values{i}(1:maxiter),'.-b', 'LineWidth', 3);
-        plot(1:maxiter,2,'.-r');
-        xlim([0,len]);
-        ylim([0,3]);
-        hold off;
-        figTitle = 'Ratio of gamma and gamma_hat';
-        set(gca, 'FontSize', 14);
-    safeTitle = regexprep(figTitle, '[^\w]', '_');
-    filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
-    saveas(gcf, fullfile(folderPath, filename),'epsc');
-    filename = sprintf('%s_%s_%d.png', runName, safeTitle, i);
-    saveas(gcf, fullfile(folderPath, filename));
-    end
+  
     
     figure 
     for i = 1:size(b,2)

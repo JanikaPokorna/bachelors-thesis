@@ -1,8 +1,5 @@
 %% CG
 
-%  Let us have a system of linear equations Ax = b for vector x, A is a
-%  positive-definite sym. n x n matrix.
-
 function [x,X,i,P,R,Gamma,Delta] = conjugate_grad(A, b, x0, maxiter, tol)
     arguments
         A

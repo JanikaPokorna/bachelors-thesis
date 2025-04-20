@@ -143,8 +143,52 @@ c = 100;
 
 %create right-hand side vector b
 b = make_multi_vector_b(spanA,kerA,betas);
+
+
+run_analysis_Orthodir(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)
+
+%% Orthodir pro Neumanna
+runName = 'Experiment_neumann_orthodir';
+n = 25;
+sizeA = n^2;
+x0 = zeros(sizeA,1);
+maxiter = 500;
+tol = 1e-10;
+
+A = gallery('neumann',sizeA);
+
+[V,D] = eigs(A,sizeA);
+
+V = [V(:,end),V(:,1:end-1)];    
+[Q,~] = qr(V);      
+% ortogonalizace proti budoucimu kerA (=posledni vl.vektor)
+ker_A = Q(:,1);
+span_A = Q(:,2:end);
+A = span_A*D(1:end-1,1:end-1)*span_A';
+
+b = make_multi_vector_b(span_A',ker_A',betas);
+
+run_analysis_Orthodir(runName,A,b,x0,maxiter,tol,betas,span_A',ker_A')
+%% Orthodir for non-singular matrices
+n = 500;
+x0 = zeros(n,1);
+ker_dim = 0;
+maxiter = 1000;
+
+
+
+rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
+a = 5;
+c = 100;
+[A,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
+
+
+%create right-hand side vector b
+b = make_multi_vector_b(spanA,kerA,betas);
 figure;
 semilogy(diag(D), 'or');
 grid on;
-
+% runName = 'Experiment_strakos_nonsing_CG';
+% run_analysis_CG(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)
+runName = 'Experiment_strakos_nonsing_orthodir';
 run_analysis_Orthodir(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)

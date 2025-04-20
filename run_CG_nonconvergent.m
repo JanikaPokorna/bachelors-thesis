@@ -60,8 +60,8 @@ function[] = run_CG_nonconvergent(runName, A, b, x0, maxiter, tol, betas, spanA,
         error_matrix = zeros(1,maxiter);
         X = X_matrices{k};
         for i = 1:maxiter
-            A_norm_xi = sqrt((converged_x - X(:,i))'*A*(converged_x - X(:,i)));
-            error_matrix(i) = A_norm_xi/(sqrt((converged_x - x0)'*A*(converged_x - x0))); 
+            A_norm_xi = sqrt((X(:,i))'*A*( X(:,i)));
+            error_matrix(i) = A_norm_xi/(sqrt((x0)'*A*(x0))); 
             if (i > 5 && error_matrix(i)==1)
                 error_matrix(i:end) = 0;
                 break

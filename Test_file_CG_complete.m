@@ -56,13 +56,13 @@ maxiter = 4000;
 % runName = 'Experiment_1138_bus';
 % new_matrix = mmread('matrices/matrix_market/positive-definite/nos7.mtx');
 % runName = 'Experiment_nos7';
-% new_matrix = mmread('matrices/matrix_market/positive-semidefinite/nos4.mtx');
-% runName = 'Experiment_nos4';
-% maxiter = 300;
-new_matrix = mmread('matrices/matrix_market/positive-definite/s2rmt3m1.mtx');
-runName = 'Experiment_s2rmt3m1';
-maxiter = 20000;
-betas = [0, 1e-2];
+new_matrix = mmread('matrices/matrix_market/positive-semidefinite/nos4.mtx');
+runName = 'Experiment_nos4';
+maxiter = 300; tol = 1e-6;
+% new_matrix = mmread('matrices/matrix_market/positive-definite/s2rmt3m1.mtx');
+% runName = 'Experiment_s2rmt3m1';
+% maxiter = 20000;
+% betas = [0, 1e-2];
 
 
 n = size(new_matrix,1);
@@ -130,8 +130,9 @@ run_analysis_CG(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)
 betas = [0, 1e-4, 1e-3];
 n = 500;
 x0 = zeros(n,1);
-ker_dim = 10;
+ker_dim = 1;
 maxiter = 550;
+tol = 1e-4;
 
 runName = 'Experiment_Orthodir';
 

@@ -4,9 +4,9 @@ function [x,X,i,P,R,Gamma,Delta] = orthodir(A, b, x0, maxiter, tol)
     arguments
         A
         b
-        x0 = zeros(size(A, 1),1)
+        x0
         maxiter = 100;
-        tol = 1e-7
+        tol = 1e-4
     end
     n = size(A, 1); 
     S = zeros(n,maxiter+1);
@@ -17,30 +17,27 @@ function [x,X,i,P,R,Gamma,Delta] = orthodir(A, b, x0, maxiter, tol)
     X = zeros(n, maxiter+1);
     Gamma = zeros(1,maxiter+1);
     Delta = zeros(1,maxiter+1);
-    R(:,2) = b;
-    P(:,2) = A*b;
-    x = x0;
-    r_prod_old = R(:,2)' * R(:,2);
-    i = 2;
-    while (sqrt(r_prod_old) > tol && i < maxiter)
-        r_p_prod = R(:,i)' * P(:,i);
+    i = 1;
+    R(:,1) = b;
+    P(:,1) = A*b;
+    while (norm(R(:,i)) > tol && i < maxiter+2)
         S(:,i) =  A * P(:,i);
-        mu(1,i) = sqrt(P(:,i)' * S(:,i));
-        Gamma(1,i) = r_p_prod/(P(:,i)' * S(:,i));
-        R(:,i+1) = R(:,i) - Gamma(1,i) * S(:,i);
-        X(:,i) = x;
-        x = x + Gamma(1,i) * P(:,i);
-        r_prod_new = S(:,i)' * S(:,i);
-        Delta(1,i) = r_prod_new / (P(:,i)' * S(:,i));
-        if i==2
-            sigma(1,i) = 0;
+        mu(i) = sqrt(P(:,i)' * S(:,i));
+        Gamma(i) =  ( R(:,i)' * P(:,i) )/(mu(i)^2);
+        X(:,i+1) = X(:,i) + Gamma(i) * P(:,i);
+        R(:,i+1) = R(:,i) - Gamma(i) * S(:,i);
+         if i==1
+            sigma(i)=0;
+            third_term = 0;
         else 
-            sigma(1,i) = mu(1,i)/(mu(1,i)-1);
+            sigma(i) = mu(i)/(mu(i-1));
+            third_term = sigma(i)*P(:,i-1);
         end
-        P(:,i+1) = S(:,i)/mu(1,i) - (Delta(1,i)/mu(1,i)) *P(:,i) - sigma(1,i) * P(:,i-1);
+        Delta(i) =  ( S(:,i)' * S(:,i) )/ (mu(i)^2);
+        P(:,i+1) = S(:,i)/mu(i) - (Delta(i)/mu(i)) *P(:,i) - third_term;
         i = i+1;
     end
-    X(:,i) = x;
+    
     if i < maxiter
         text = sprintf('Method converged in %d iterations.\n', i);
         disp(text);
@@ -48,7 +45,6 @@ function [x,X,i,P,R,Gamma,Delta] = orthodir(A, b, x0, maxiter, tol)
         text = sprintf('Method was stopped after %d iterations.\n', i);
         disp(text);
     end
-    
+    x = X(:,i);
+    i = i-2;
 end
-
-

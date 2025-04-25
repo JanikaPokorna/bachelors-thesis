@@ -175,7 +175,7 @@ n = 500;
 x0 = zeros(n,1);
 ker_dim = 0;
 maxiter = 1000;
-
+betas = 0;
 
 
 rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
@@ -186,10 +186,11 @@ c = 100;
 
 %create right-hand side vector b
 b = make_multi_vector_b(spanA,kerA,betas);
-figure;
-semilogy(diag(D), 'or');
-grid on;
+
 % runName = 'Experiment_strakos_nonsing_CG';
 % run_analysis_CG(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)
-runName = 'Experiment_strakos_nonsing_orthodir';
-run_analysis_Orthodir(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)
+% runName = 'Experiment_strakos_nonsing_orthodir';
+% run_analysis_Orthodir(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)
+runName = 'Experiment_CG_Orthodir_comparison';
+run_analysis_CG_orthodir_comparison(runName,A,b,x0,maxiter,tol,spanA,kerA)
+

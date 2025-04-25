@@ -74,7 +74,7 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
         Error_matrices{k} = error_matrix;
     end
     
-    %% Vykreslení detailu divergence
+    %% Vykreslení divergence
     Divergence_detail_matrices = cell(size(b,2), 1);
     for k = 1:size(b,2)
         error_detail_matrix = zeros(1,maxiter);
@@ -175,7 +175,7 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
     size(Error_matrices{1}(1:maxiter));
     size(1:maxiter);
     
-    %% purely plotting values counted above
+    %% Relative error
     figure
     hold on;
     legend_entries = cell(1, size(b,2));
@@ -305,11 +305,11 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
         hold on;
         h_relative = plot(1:maxiter,Ratio_values{i}(1:maxiter),'.-b', 'LineWidth', 3);
         plot(1:maxiter,2,'.-r');
+        set(gca, 'FontSize', 14);
         xlim([0,len]);
         ylim([0,3]);
         hold off;
         figTitle = 'Ratio of gamma and gamma_hat';
-        set(gca, 'FontSize', 14);
     safeTitle = regexprep(figTitle, '[^\w]', '_');
     filename = sprintf('%s_%s_%d.eps', runName, safeTitle, i);
     saveas(gcf, fullfile(folderPath, filename),'epsc');
@@ -321,11 +321,12 @@ function[] = run_analysis_CG(runName, A, b, x0, maxiter, tol, betas, spanA, kerA
     for i = 1:size(b,2)
         hold on;
         h_ratio = plot(1:maxiter,Divergence_detail_matrices{i}(1:maxiter),'-', 'Color', colors{i}, 'LineWidth', 3);
-        xlim([0,len]);
-        set(gca, 'FontSize', 14);
-        ylim([0,1.5]);
-        hold off;
+        
     end
+    xlim([0,len]);
+    ylim([0,1.5]);
+    set(gca, 'FontSize', 14);
+    hold off;
     figTitle = 'The Detail of divergence.';
     safeTitle = regexprep(figTitle, '[^\w]', '_');
     filename = sprintf('%s_%s.eps', runName, safeTitle);

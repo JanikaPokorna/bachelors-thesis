@@ -1,4 +1,8 @@
-%% CG
+% Bachelor Thesis - Conjugate Gradient Method for Solving Singular Systems
+% Janika Pokorná
+% May 2025, Faculty of Mathematics and Physics, Charles University
+
+%% Conjugate Gradient method
 
 function [x,X,i,P,R,Gamma,Delta] = conjugate_grad(A, b, x0, maxiter, tol)
     arguments

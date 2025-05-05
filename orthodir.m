@@ -1,3 +1,7 @@
+% Bachelor Thesis - Conjugate Gradient Method for Solving Singular Systems
+% Janika Pokorná
+% May 2025, Faculty of Mathematics and Physics, Charles University
+
 %% Orthodir
 
 function [x,X,i,P,R,Gamma,Delta] = orthodir(A, b, x0, maxiter, tol)

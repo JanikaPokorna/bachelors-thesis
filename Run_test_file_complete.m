@@ -14,7 +14,7 @@ maxiter = 550;
 
 runName = 'Experiment_strakos';
 
-rho = 0.8;
+rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
 [A,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
@@ -40,11 +40,12 @@ A = gallery('neumann',sizeA);
 [V,D] = eigs(A,sizeA);
 
 V = [V(:,end),V(:,1:end-1)];    
-[Q,~] = qr(V);
+[Q,~] = qr(V);      % ortogonalizace proti budoucimu kerA (=posledni vl.vektor)
 ker_A = Q(:,1);
 span_A = Q(:,2:end);
 A = span_A*D(1:end-1,1:end-1)*span_A';
 
+%right hand side vector b
 b = make_multi_vector_b(span_A',ker_A',betas);
 
 analysis_CG(runName,A,b,x0,maxiter,tol,betas,span_A',ker_A')
@@ -88,16 +89,15 @@ tol = 1e-8;
 
 runName = 'Experiment_strakos_larger_kernel';
 
-rho = 0.8; 
+rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
 [A,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
 diagonal_values = diag(D);
 
+%create right-hand side vector b
 b = make_multi_vector_b(spanA,kerA,betas);
-figure;
-semilogy(diag(D), 'or');
-grid on;
+
 
 analysis_CG(runName,A,b,x0,maxiter,tol,betas,spanA,kerA)
 %% Orthodir Experiment with Strakos matrix
@@ -113,9 +113,10 @@ runName = 'Experiment_Orthodir';
 rho = 0.8;
 a = 5;
 c = 100;
-[A,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho);
+[A,~,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho);
 
 
+%create right-hand side vector b
 b = make_multi_vector_b(spanA,kerA,betas);
 
 
@@ -150,10 +151,13 @@ maxiter = 1000;
 betas = 0;
 
 
-rho = 0.8; 
+rho = 0.8; %the smaller this is, the more eigenval are close, should be below 1
 a = 5;
 c = 100;
-[A,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho);
+[A,D,spanA,kerA] = singular_strakos(n,ker_dim,a,c,rho); % creates strakos matrix with ker of dimension 1
+
+
+%create right-hand side vector b
 b = make_multi_vector_b(spanA,kerA,betas);
 
 runName = 'Experiment_CG_Orthodir_comparison';

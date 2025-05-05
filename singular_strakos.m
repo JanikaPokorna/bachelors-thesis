@@ -1,3 +1,7 @@
+% Bachelor Thesis - Conjugate Gradient Method for Solving Singular Systems
+% Janika Pokorná
+% May 2025, Faculty of Mathematics and Physics, Charles University
+
 function [A,D,spanA, kerA] = singular_strakos(n, kernel_dim, a, b, rho)
     % 
     lambda = zeros(n, 1);

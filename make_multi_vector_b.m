@@ -1,3 +1,7 @@
+% Bachelor Thesis - Conjugate Gradient Method for Solving Singular Systems
+% Janika Pokorná
+% May 2025, Faculty of Mathematics and Physics, Charles University
+
 function [b] = make_multi_vector_b(spanA,kerA,betas,onlykernel)
     arguments
         spanA

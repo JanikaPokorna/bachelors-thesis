@@ -1,1 +1,3 @@
 Bachelors thesis on the topic of Conjugate Gradients Applied on Singular Matrices
+The code is run from the file Run_test_file_complete.m, 
+the rest are functions necessary for the execution of the given code.
